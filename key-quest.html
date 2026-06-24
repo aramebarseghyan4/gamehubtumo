@@ -330,16 +330,16 @@
       filter: grayscale(0.4);
     }
     /* Lock icon on every non-active tab — switching is always disabled */
-    #level-select li:not(.active) {
+    #level-select li.locked {
       cursor: not-allowed;
     }
-    #level-select li:not(.active):hover {
+    #level-select li.locked:hover {
       transform: none;
       box-shadow: none;
       background: rgba(255,255,255,0.06);
       border-color: rgba(255,255,255,0.14);
     }
-    #level-select li:not(.active)::after {
+    #level-select li.locked::after {
       content: '🔒';
       position: absolute;
       top: -7px;
@@ -5169,7 +5169,6 @@
     // (activeSkin is read inside drawPlayer via the closure — see render section)
 
     document.getElementById('adm-unlock-all').addEventListener('click', () => {
-      if (!adminUnlocked) return;
       level2Unlocked = true;
       level3Unlocked = true;
       level4Unlocked = true;
@@ -5178,6 +5177,20 @@
       updateMainMenuLevels();
       playSound('adminSuccess');
       closeAdminSidebar();
+    });
+
+    document.getElementById('level-select').addEventListener('click', (e) => {
+      const li = e.target.closest('li');
+      if (!li || li.classList.contains('locked') || li.classList.contains('active')) return;
+      const idx = Number(li.dataset.level);
+      if (isNaN(idx)) return;
+      const lives = state.lives;
+      currentLevelIndex = idx;
+      initState(idx);
+      state.lives = lives;
+      gamePaused = false;
+      updateHUD();
+      updateLevelSelector();
     });
 
     document.getElementById('adm-reset').addEventListener('click', () => {
