@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Game Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --pillar-w: clamp(28px, 5vw, 72px); }
+
+    html, body { height: 100%; overflow: hidden; }
+
+    body {
+      background: radial-gradient(ellipse at 50% 30%, #1a1035 0%, #0d0b14 70%);
+      color: #e0d8f0;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ── Side pillars ── */
+    body::before, body::after {
+      content: '';
+      position: fixed;
+      top: 0;
+      width: var(--pillar-w);
+      height: 100vh;
+      z-index: 100;
+      pointer-events: none;
+    }
+    body::before {
+      left: 0;
+      background: linear-gradient(to right, rgba(70,0,160,1) 0%, rgba(110,20,210,0.9) 45%, rgba(130,40,230,0.55) 75%, transparent 100%);
+      box-shadow: 6px 0 30px rgba(157,0,255,0.7);
+      border-right: 3px solid rgba(190,70,255,0.75);
+    }
+    body::after {
+      right: 0;
+      background: linear-gradient(to left, rgba(70,0,160,1) 0%, rgba(110,20,210,0.9) 45%, rgba(130,40,230,0.55) 75%, transparent 100%);
+      box-shadow: -6px 0 30px rgba(157,0,255,0.7);
+      border-left: 3px solid rgba(190,70,255,0.75);
+    }
+
+    /* ── Starfield canvas ── */
+    #stars { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+
+    /* ── Main card ── */
+    .hub {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: clamp(20px, 3vh, 36px);
+      padding: clamp(28px, 4vh, 52px) clamp(24px, 5vw, 72px);
+      background: linear-gradient(160deg, rgba(22,10,54,0.85) 0%, rgba(10,5,28,0.94) 100%);
+      border: 1.5px solid rgba(180,90,255,0.38);
+      border-radius: 26px;
+      backdrop-filter: blur(22px);
+      box-shadow:
+        0 0 0 1px rgba(140,70,255,0.12),
+        0 0 50px rgba(157,0,255,0.30),
+        0 28px 72px rgba(0,0,0,0.75);
+      max-width: min(90vw, 800px);
+      width: 100%;
+      animation: hubIn 0.7s cubic-bezier(0.175,0.885,0.32,1.275) both;
+    }
+    @keyframes hubIn {
+      from { transform: scale(0.88); opacity: 0; }
+      to   { transform: scale(1);    opacity: 1; }
+    }
+
+    /* ── Top shimmer line ── */
+    .hub::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 12%; right: 12%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255,215,0,0.8), rgba(255,255,255,0.6), rgba(255,215,0,0.8), transparent);
+      border-radius: 1px;
+    }
+
+    /* ── Header ── */
+    .hub-header { text-align: center; }
+
+    .hub-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: clamp(2rem, 5.5vw, 3.6rem);
+      font-weight: 900;
+      letter-spacing: 0.16em;
+      color: #ffe566;
+      text-shadow:
+        0 0 10px #ffd700,
+        0 0 30px #ffd700,
+        0 0 60px rgba(255,200,0,0.65),
+        0 4px 0 rgba(80,40,0,0.9);
+      user-select: none;
+      animation: titlePulse 3s ease-in-out infinite;
+    }
+    @keyframes titlePulse {
+      0%, 100% { text-shadow: 0 0 10px #ffd700, 0 0 30px #ffd700, 0 0 60px rgba(255,200,0,0.65), 0 4px 0 rgba(80,40,0,0.9); }
+      50%       { text-shadow: 0 0 16px #ffd700, 0 0 44px #ffd700, 0 0 90px rgba(255,200,0,0.85), 0 4px 0 rgba(80,40,0,0.9); }
+    }
+
+    .hub-sub {
+      margin-top: 8px;
+      font-size: 0.82rem;
+      color: #5a4a80;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+
+    /* ── Divider ── */
+    .divider {
+      width: 100%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(160,80,255,0.35), transparent);
+    }
+
+    /* ── Games grid ── */
+    .games-row {
+      display: flex;
+      gap: 18px;
+      flex-wrap: wrap;
+      justify-content: center;
+      width: 100%;
+    }
+
+    /* ── Game card ── */
+    .game-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      padding: 28px 22px 22px;
+      border-radius: 20px;
+      background: rgba(255,255,255,0.028);
+      flex: 1;
+      min-width: 200px;
+      max-width: 280px;
+      text-align: center;
+      text-decoration: none;
+      color: inherit;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.25s cubic-bezier(.22,1,.36,1), box-shadow 0.25s;
+    }
+    /* inner shimmer sweep on hover */
+    .game-card::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, transparent 40%, rgba(255,255,255,0.04) 50%, transparent 60%);
+      background-size: 200% 200%;
+      transition: background-position 0.5s ease;
+      background-position: 200% 200%;
+      border-radius: inherit;
+    }
+    .game-card:hover::after { background-position: -50% -50%; }
+
+    /* Gold card — Key Quest */
+    .game-card.gold {
+      border: 1.5px solid rgba(255,215,0,0.28);
+      box-shadow: 0 0 18px rgba(255,215,0,0.10), 0 8px 32px rgba(0,0,0,0.45);
+    }
+    .game-card.gold:hover {
+      transform: translateY(-10px) scale(1.03);
+      box-shadow: 0 0 48px rgba(255,215,0,0.45), 0 18px 52px rgba(255,160,0,0.22), 0 0 0 1px rgba(255,215,0,0.32);
+    }
+
+    /* Purple card — Chess */
+    .game-card.purple {
+      border: 1.5px solid rgba(160,80,255,0.28);
+      box-shadow: 0 0 18px rgba(140,60,255,0.08), 0 8px 32px rgba(0,0,0,0.45);
+    }
+    .game-card.purple:hover {
+      transform: translateY(-10px) scale(1.03);
+      box-shadow: 0 0 48px rgba(160,80,255,0.45), 0 18px 52px rgba(100,40,200,0.22), 0 0 0 1px rgba(160,80,255,0.32);
+    }
+
+    /* Cyan card — Neon Snake */
+    .game-card.cyan {
+      border: 1.5px solid rgba(0,220,200,0.28);
+      box-shadow: 0 0 18px rgba(0,255,200,0.08), 0 8px 32px rgba(0,0,0,0.45);
+    }
+    .game-card.cyan:hover {
+      transform: translateY(-10px) scale(1.03);
+      box-shadow: 0 0 48px rgba(0,255,200,0.40), 0 18px 52px rgba(0,200,160,0.20), 0 0 0 1px rgba(0,220,200,0.32);
+    }
+
+    .card-icon {
+      font-size: 3.4rem;
+      line-height: 1;
+      transition: transform 0.3s cubic-bezier(.22,1,.36,1), filter 0.3s;
+    }
+    .game-card.gold   .card-icon { filter: drop-shadow(0 0 10px rgba(255,215,0,0.45)); }
+    .game-card.cyan   .card-icon { filter: drop-shadow(0 0 10px rgba(0,255,200,0.45)); }
+    .game-card.purple .card-icon { filter: drop-shadow(0 0 10px rgba(160,80,255,0.55)); }
+    .game-card:hover .card-icon { transform: scale(1.18); }
+
+    .card-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.05rem;
+      font-weight: 900;
+      letter-spacing: 0.12em;
+    }
+    .game-card.gold   .card-title { color: #ffd700; text-shadow: 0 0 14px rgba(255,215,0,0.4); }
+    .game-card.cyan   .card-title { color: #00ffcc; text-shadow: 0 0 14px rgba(0,255,200,0.4); }
+    .game-card.purple .card-title { color: #c080ff; text-shadow: 0 0 14px rgba(160,80,255,0.4); }
+
+    .card-genre {
+      font-size: 0.62rem;
+      font-weight: 800;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      border-radius: 20px;
+      padding: 3px 11px;
+    }
+    .game-card.gold   .card-genre { color: rgba(255,215,0,0.6);   border: 1px solid rgba(255,215,0,0.22); }
+    .game-card.cyan   .card-genre { color: rgba(0,255,200,0.6);   border: 1px solid rgba(0,255,200,0.22); }
+    .game-card.purple .card-genre { color: rgba(160,80,255,0.65); border: 1px solid rgba(160,80,255,0.25); }
+
+    .card-desc {
+      font-size: 0.82rem;
+      color: #7a6a9a;
+      line-height: 1.65;
+      flex: 1;
+    }
+
+    .card-btn {
+      font-family: 'Orbitron', sans-serif;
+      padding: 12px 38px;
+      border-radius: 12px;
+      font-size: 0.82rem;
+      font-weight: 900;
+      letter-spacing: 0.1em;
+      border: none;
+      cursor: pointer;
+      margin-top: 4px;
+      transition: transform 0.15s, box-shadow 0.15s;
+      position: relative;
+      z-index: 1;
+    }
+    .game-card.gold .card-btn {
+      background: linear-gradient(135deg, #ffe033, #ffaa00);
+      color: #1a0a2e;
+      box-shadow: 0 0 18px rgba(255,200,0,0.30);
+    }
+    .game-card.gold:hover .card-btn {
+      transform: translateY(-2px);
+      box-shadow: 0 0 30px rgba(255,200,0,0.60);
+    }
+    .game-card.cyan .card-btn {
+      background: linear-gradient(135deg, #00ffcc, #00b8a0);
+      color: #001a16;
+      box-shadow: 0 0 18px rgba(0,255,200,0.28);
+    }
+    .game-card.cyan:hover .card-btn {
+      transform: translateY(-2px);
+      box-shadow: 0 0 30px rgba(0,255,200,0.55);
+    }
+    .game-card.purple .card-btn {
+      background: linear-gradient(135deg, #c080ff, #7030c0);
+      color: #0e0520;
+      box-shadow: 0 0 18px rgba(160,80,255,0.30);
+    }
+    .game-card.purple:hover .card-btn {
+      transform: translateY(-2px);
+      box-shadow: 0 0 30px rgba(160,80,255,0.60);
+    }
+
+    /* ── Footer ── */
+    .hub-footer {
+      font-size: 0.68rem;
+      color: #3a2a58;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    @media (max-width: 580px) {
+      .hub { gap: 16px; padding: 22px 16px; }
+      .hub-title { font-size: 1.8rem; }
+      .game-card { min-width: 160px; padding: 18px 14px 16px; gap: 10px; }
+      .card-icon { font-size: 2.6rem; }
+      .card-btn  { padding: 10px 24px; font-size: 0.76rem; }
+    }
+
+    /* ── Admin button (fixed top-right) ── */
+    #admin-hub-btn {
+      position: fixed;
+      top: 14px;
+      right: calc(var(--pillar-w) + 12px);
+      z-index: 200;
+      background: rgba(20,10,48,0.85);
+      border: 1px solid rgba(160,80,255,0.35);
+      color: #8060c0;
+      padding: 8px 18px;
+      border-radius: 10px;
+      font-size: 0.76rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      cursor: pointer;
+      backdrop-filter: blur(10px);
+      transition: background 0.18s, color 0.18s, border-color 0.18s, box-shadow 0.18s, transform 0.12s;
+    }
+    #admin-hub-btn:hover {
+      background: rgba(100,50,220,0.28);
+      color: #c0a0ff;
+      border-color: rgba(180,100,255,0.60);
+      box-shadow: 0 0 16px rgba(140,70,255,0.35);
+      transform: translateY(-1px);
+    }
+    #admin-hub-btn.logged-in {
+      border-color: rgba(80,220,120,0.50);
+      color: #55ee99;
+      background: rgba(20,60,30,0.55);
+    }
+    #admin-hub-btn.logged-in:hover {
+      box-shadow: 0 0 16px rgba(60,200,100,0.35);
+      border-color: rgba(80,220,120,0.75);
+    }
+
+    /* ── Admin modal ── */
+    #admin-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 2000;
+      background: rgba(0,0,0,0.78);
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(6px);
+    }
+    #admin-modal.visible { display: flex; }
+
+    .admin-modal-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 18px;
+      padding: 44px 52px;
+      background: linear-gradient(160deg, rgba(18,8,44,0.97) 0%, rgba(8,4,22,0.99) 100%);
+      border: 1.5px solid rgba(160,80,255,0.42);
+      border-radius: 22px;
+      box-shadow: 0 0 60px rgba(120,0,220,0.32), 0 24px 64px rgba(0,0,0,0.75);
+      backdrop-filter: blur(20px);
+      min-width: 300px;
+      text-align: center;
+    }
+    .admin-modal-box .icon { font-size: 2.6rem; filter: drop-shadow(0 0 14px rgba(180,80,255,0.65)); }
+    .admin-modal-box h3 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.2rem;
+      font-weight: 900;
+      letter-spacing: 0.14em;
+      color: #c880ff;
+      text-shadow: 0 0 20px rgba(180,80,255,0.55);
+    }
+    #admin-modal-pw {
+      width: 100%;
+      background: rgba(255,255,255,0.07);
+      border: 1.5px solid rgba(160,80,255,0.38);
+      border-radius: 10px;
+      color: #e0ccff;
+      font-size: 1rem;
+      padding: 11px 16px;
+      outline: none;
+      font-family: 'Orbitron', monospace;
+      letter-spacing: 0.14em;
+      text-align: center;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    #admin-modal-pw:focus {
+      border-color: rgba(210,100,255,0.70);
+      box-shadow: 0 0 16px rgba(157,0,255,0.36);
+    }
+    #admin-modal-msg {
+      font-size: 0.74rem;
+      min-height: 16px;
+      color: #ff6666;
+      letter-spacing: 0.06em;
+    }
+    .admin-modal-btns { display: flex; gap: 10px; }
+    #admin-modal-submit {
+      background: linear-gradient(135deg, rgba(120,0,220,0.65), rgba(80,0,160,0.55));
+      border: 1px solid rgba(200,100,255,0.50);
+      color: #e0aaff;
+      padding: 10px 28px;
+      border-radius: 10px;
+      font-size: 0.84rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      cursor: pointer;
+      transition: background 0.15s, box-shadow 0.15s, transform 0.12s;
+    }
+    #admin-modal-submit:hover {
+      background: linear-gradient(135deg, rgba(157,0,255,0.75), rgba(100,0,200,0.65));
+      box-shadow: 0 0 18px rgba(157,0,255,0.45);
+      transform: translateY(-1px);
+    }
+    #admin-modal-cancel {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.14);
+      color: #8878a8;
+      padding: 10px 22px;
+      border-radius: 10px;
+      font-size: 0.84rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.12s;
+    }
+    #admin-modal-cancel:hover { background: rgba(255,255,255,0.10); transform: translateY(-1px); }
+
+    /* logged-in state inside modal */
+    #admin-logged-in { display: none; flex-direction: column; align-items: center; gap: 14px; text-align: center; }
+    #admin-logged-in p { color: #88cc88; font-size: 0.88rem; line-height: 1.65; }
+    #admin-logout-btn {
+      background: rgba(180,40,40,0.22);
+      border: 1px solid rgba(220,70,70,0.45);
+      color: #ff8877;
+      padding: 9px 24px;
+      border-radius: 10px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.12s;
+    }
+    #admin-logout-btn:hover { background: rgba(200,40,40,0.35); transform: translateY(-1px); }
+  </style>
+</head>
+<body>
+
+  <canvas id="stars"></canvas>
+
+  <!-- Admin button -->
+  <button id="admin-hub-btn">⚙ Admin</button>
+
+  <!-- Admin modal -->
+  <div id="admin-modal">
+    <div class="admin-modal-box">
+      <div class="icon">🔐</div>
+      <h3>ADMIN LOGIN</h3>
+
+      <!-- Login form -->
+      <div id="admin-login-form" style="display:flex;flex-direction:column;align-items:center;gap:14px;width:100%">
+        <input id="admin-modal-pw" type="password" placeholder="Enter admin code" maxlength="32" autocomplete="off">
+        <div id="admin-modal-msg"></div>
+        <div class="admin-modal-btns">
+          <button id="admin-modal-submit">🔓 Login</button>
+          <button id="admin-modal-cancel">Cancel</button>
+        </div>
+      </div>
+
+      <!-- Logged-in state -->
+      <div id="admin-logged-in">
+        <p>✅ Logged in as Admin<br><span style="color:#5a4880;font-size:0.78rem">Session active across all games</span></p>
+        <button id="admin-open-super" style="background:rgba(80,0,160,0.22);border:1px solid rgba(157,0,255,0.48);color:#cc88ff;padding:9px 24px;border-radius:10px;font-size:0.82rem;font-weight:700;cursor:pointer;letter-spacing:0.05em;transition:background 0.15s,box-shadow 0.15s;">🔧 Superadmin Panel</button>
+        <button id="admin-logout-btn">🚪 Logout</button>
+        <button id="admin-modal-cancel2" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.14);color:#8878a8;padding:8px 20px;border-radius:10px;font-size:0.82rem;font-weight:700;cursor:pointer;">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Superadmin overlay (Hub) -->
+  <div id="hub-sa-overlay" style="position:fixed;inset:0;z-index:3000;background:radial-gradient(ellipse at 50% 18%,#200850 0%,#0c0420 55%,#050110 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;overflow-y:auto;opacity:0;pointer-events:none;transition:opacity 0.28s ease;">
+
+    <!-- Login -->
+    <div id="hub-sa-login" style="display:flex;flex-direction:column;align-items:center;gap:14px;width:min(400px,90vw);padding:44px 32px 40px;background:rgba(255,255,255,0.03);border:1px solid rgba(157,0,255,0.32);border-radius:22px;box-shadow:0 0 60px rgba(120,0,220,0.28);text-align:center;">
+      <div style="font-size:3rem;filter:drop-shadow(0 0 16px rgba(180,80,255,0.7))">🔧</div>
+      <div style="font-family:'Orbitron',sans-serif;font-size:clamp(1rem,3vw,1.5rem);font-weight:900;letter-spacing:0.18em;color:#c880ff;text-shadow:0 0 28px rgba(180,80,255,0.55)">SUPERADMIN ACCESS</div>
+      <div style="font-size:0.66rem;letter-spacing:0.12em;color:#5a4080;text-transform:uppercase">Restricted — Authorised Personnel Only</div>
+      <input id="hub-sa-pw" type="password" placeholder="Enter superadmin code" maxlength="32" autocomplete="off"
+        style="width:100%;background:rgba(255,255,255,0.07);border:1.5px solid rgba(160,80,255,0.40);border-radius:10px;color:#e0ccff;font-size:1rem;padding:11px 16px;outline:none;font-family:'Orbitron',monospace;letter-spacing:0.12em;text-align:center;transition:border-color 0.2s,box-shadow 0.2s;">
+      <div id="hub-sa-msg" style="font-size:0.74rem;min-height:16px;color:#ff6666;letter-spacing:0.06em;"></div>
+      <button id="hub-sa-cancel" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.14);color:#8878a8;padding:8px 22px;border-radius:10px;font-size:0.82rem;font-weight:700;cursor:pointer;">✕ Cancel</button>
+    </div>
+
+    <!-- Controls -->
+    <div id="hub-sa-controls" style="display:none;flex-direction:column;width:min(920px,94vw);gap:18px;padding:22px 0 28px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:0 4px 14px;border-bottom:1px solid rgba(157,0,255,0.22);">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <span style="font-size:1.9rem;filter:drop-shadow(0 0 10px rgba(180,80,255,0.6))">🔧</span>
+          <div>
+            <div style="font-family:'Orbitron',sans-serif;font-size:clamp(0.9rem,2.2vw,1.3rem);font-weight:900;letter-spacing:0.16em;color:#c880ff;text-shadow:0 0 18px rgba(157,0,255,0.48)">SUPERADMIN PANEL</div>
+            <div style="font-size:0.66rem;color:#44ee88;letter-spacing:0.10em;margin-top:2px">🟢 Authenticated — Full Access</div>
+          </div>
+        </div>
+        <button id="hub-sa-close" style="background:rgba(255,255,255,0.06);border:1px solid rgba(160,80,255,0.35);color:#b080e8;cursor:pointer;font-size:0.78rem;font-weight:700;letter-spacing:0.08em;padding:7px 16px;border-radius:10px;transition:background 0.15s,box-shadow 0.15s,color 0.15s;">✕ Close</button>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;">
+
+        <!-- Passwords -->
+        <div style="display:flex;flex-direction:column;gap:9px;padding:16px 14px;background:rgba(255,255,255,0.03);border:1px solid rgba(157,0,255,0.18);border-radius:16px;">
+          <div style="font-size:0.66rem;font-weight:800;letter-spacing:0.14em;color:#9060c0;text-transform:uppercase;padding-bottom:4px;border-bottom:1px solid rgba(157,0,255,0.14)">🔑 Change Admin Password</div>
+          <input id="hub-sa-admpw1" type="password" placeholder="New password"     maxlength="32" autocomplete="new-password" style="width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(160,80,255,0.30);border-radius:8px;color:#d8ccf0;font-size:0.76rem;padding:7px 10px;outline:none;font-family:'Orbitron',monospace;letter-spacing:0.06em;">
+          <input id="hub-sa-admpw2" type="password" placeholder="Confirm password" maxlength="32" autocomplete="new-password" style="width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(160,80,255,0.30);border-radius:8px;color:#d8ccf0;font-size:0.76rem;padding:7px 10px;outline:none;font-family:'Orbitron',monospace;letter-spacing:0.06em;">
+          <div id="hub-sa-admpw-msg" style="font-size:0.66rem;text-align:center;min-height:13px;color:#55ee88;"></div>
+          <button id="hub-sa-save-admpw" style="background:linear-gradient(135deg,rgba(100,0,200,0.55),rgba(70,0,150,0.45));border:1px solid rgba(180,80,255,0.50);color:#d0aaff;padding:9px 10px;border-radius:10px;cursor:pointer;font-size:0.74rem;font-weight:700;letter-spacing:0.04em;transition:background 0.15s,box-shadow 0.15s,transform 0.12s;">💾 Save Admin Password</button>
+          <hr style="border:none;border-top:1px solid rgba(157,0,255,0.14);margin:2px 0;">
+          <div style="font-size:0.66rem;font-weight:800;letter-spacing:0.14em;color:#9060c0;text-transform:uppercase;padding-bottom:4px;border-bottom:1px solid rgba(157,0,255,0.14)">🔧 Change Superadmin Code</div>
+          <input id="hub-sa-superpw1" type="password" placeholder="New code"     maxlength="32" autocomplete="new-password" style="width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(160,80,255,0.30);border-radius:8px;color:#d8ccf0;font-size:0.76rem;padding:7px 10px;outline:none;font-family:'Orbitron',monospace;letter-spacing:0.06em;">
+          <input id="hub-sa-superpw2" type="password" placeholder="Confirm code" maxlength="32" autocomplete="new-password" style="width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(160,80,255,0.30);border-radius:8px;color:#d8ccf0;font-size:0.76rem;padding:7px 10px;outline:none;font-family:'Orbitron',monospace;letter-spacing:0.06em;">
+          <div id="hub-sa-superpw-msg" style="font-size:0.66rem;text-align:center;min-height:13px;color:#55ee88;"></div>
+          <button id="hub-sa-save-superpw" style="background:linear-gradient(135deg,rgba(50,0,100,0.55),rgba(30,0,70,0.45));border:1px solid rgba(130,60,220,0.40);color:#a080d8;padding:9px 10px;border-radius:10px;cursor:pointer;font-size:0.74rem;font-weight:700;letter-spacing:0.04em;transition:background 0.15s,box-shadow 0.15s,transform 0.12s;">🔒 Save Superadmin Code</button>
+        </div>
+
+        <!-- Session -->
+        <div style="display:flex;flex-direction:column;gap:9px;padding:16px 14px;background:rgba(255,255,255,0.03);border:1px solid rgba(157,0,255,0.18);border-radius:16px;">
+          <div style="font-size:0.66rem;font-weight:800;letter-spacing:0.14em;color:#9060c0;text-transform:uppercase;padding-bottom:4px;border-bottom:1px solid rgba(157,0,255,0.14)">🛡️ Session Status</div>
+          <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(160,80,255,0.16);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:0.63rem;color:#6050a0;letter-spacing:0.05em;">Admin session:</span>
+              <span id="hub-sa-stat-session" style="font-family:'Orbitron',monospace;font-size:0.68rem;font-weight:700;color:#c0a8ff;">—</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:0.63rem;color:#6050a0;letter-spacing:0.05em;">Admin pw:</span>
+              <span id="hub-sa-stat-pw" style="font-family:'Orbitron',monospace;font-size:0.68rem;font-weight:700;color:#c0a8ff;">—</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:0.63rem;color:#6050a0;letter-spacing:0.05em;">Snake hi-score:</span>
+              <span id="hub-sa-stat-hi" style="font-family:'Orbitron',monospace;font-size:0.68rem;font-weight:700;color:#c0a8ff;">—</span>
+            </div>
+          </div>
+          <button id="hub-sa-revoke" style="background:linear-gradient(135deg,rgba(140,0,0,0.60),rgba(90,0,0,0.50));border:1px solid rgba(255,60,60,0.45);color:#ff8888;padding:9px 10px;border-radius:10px;cursor:pointer;font-size:0.74rem;font-weight:700;transition:background 0.15s,box-shadow 0.15s,transform 0.12s;">🚪 Revoke Admin Session</button>
+          <button id="hub-sa-wipe-all" style="background:linear-gradient(135deg,rgba(140,0,0,0.60),rgba(90,0,0,0.50));border:1px solid rgba(255,60,60,0.45);color:#ff8888;padding:9px 10px;border-radius:10px;cursor:pointer;font-size:0.74rem;font-weight:700;transition:background 0.15s,box-shadow 0.15s,transform 0.12s;">🗑️ Wipe All Game Data</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <div class="hub">
+    <div class="hub-header">
+      <div class="hub-title">🎮 GAME HUB</div>
+      <div class="hub-sub">Select a game and play</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="games-row">
+
+      <a href="key-quest.html" class="game-card gold">
+        <div class="card-icon">🗝️</div>
+        <div class="card-title">KEY QUEST</div>
+        <div class="card-genre">PUZZLE</div>
+        <div class="card-desc">Collect all keys and reach the exit. Dodge enemies and traps!</div>
+        <button class="card-btn">▶ PLAY</button>
+      </a>
+
+      <a href="snake.html" class="game-card cyan">
+        <div class="card-icon">🐍</div>
+        <div class="card-title">NEON SNAKE</div>
+        <div class="card-genre">ARCADE</div>
+        <div class="card-desc">Eat food, grow longer. Don't hit the walls or yourself!</div>
+        <button class="card-btn">▶ PLAY</button>
+      </a>
+
+      <a href="chess.html" class="game-card purple">
+        <div class="card-icon">♟</div>
+        <div class="card-title">CHESS</div>
+        <div class="card-genre">STRATEGY</div>
+        <div class="card-desc">The classic game of kings. Play on a stunning amethyst board.</div>
+        <button class="card-btn">▶ PLAY</button>
+      </a>
+
+    </div>
+
+    <div class="divider"></div>
+    <div class="hub-footer">3 games available</div>
+  </div>
+
+  <script>
+    // Starfield
+    const canvas = document.getElementById('stars');
+    const ctx    = canvas.getContext('2d');
+    const STARS  = Array.from({ length: 120 }, () => ({
+      x: Math.random(), y: Math.random(),
+      r: 0.4 + Math.random() * 1.2,
+      b: Math.random() * Math.PI * 2,
+      s: 0.5 + Math.random() * 1.5,
+    }));
+
+    function resize() {
+      canvas.width  = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    let t = 0;
+    function drawStars(ts) {
+      t = ts / 1000;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      STARS.forEach(s => {
+        const twinkle = 0.3 + 0.7 * Math.abs(Math.sin(t * s.s + s.b));
+        ctx.globalAlpha = twinkle * 0.75;
+        ctx.fillStyle   = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(s.x * canvas.width, s.y * canvas.height, s.r, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      ctx.globalAlpha = 1;
+      requestAnimationFrame(drawStars);
+    }
+    requestAnimationFrame(drawStars);
+
+    // ── Admin session ──────────────────────────────────────────────────────
+    const ADMIN_PW_KEY      = 'kq_adm_pw';
+    const ADMIN_SESSION_KEY = 'kq_admin_session';
+    const getAdminPw = () => localStorage.getItem(ADMIN_PW_KEY) || '4474';
+
+    const adminBtn   = document.getElementById('admin-hub-btn');
+    const modal      = document.getElementById('admin-modal');
+    const loginForm  = document.getElementById('admin-login-form');
+    const loggedInEl = document.getElementById('admin-logged-in');
+    const pwInput    = document.getElementById('admin-modal-pw');
+    const msgEl      = document.getElementById('admin-modal-msg');
+
+    function isLoggedIn() { return localStorage.getItem(ADMIN_SESSION_KEY) === '1'; }
+
+    function refreshAdminUI() {
+      if (isLoggedIn()) {
+        adminBtn.textContent = '✅ Admin';
+        adminBtn.classList.add('logged-in');
+      } else {
+        adminBtn.textContent = '⚙ Admin';
+        adminBtn.classList.remove('logged-in');
+      }
+    }
+    refreshAdminUI();
+
+    function openModal() {
+      modal.classList.add('visible');
+      if (isLoggedIn()) {
+        loginForm.style.display  = 'none';
+        loggedInEl.style.display = 'flex';
+      } else {
+        loginForm.style.display  = 'flex';
+        loggedInEl.style.display = 'none';
+        pwInput.value = '';
+        msgEl.textContent = '';
+        setTimeout(() => pwInput.focus(), 80);
+      }
+    }
+    function closeModal() { modal.classList.remove('visible'); }
+
+    adminBtn.addEventListener('click', openModal);
+    document.getElementById('admin-modal-cancel').addEventListener('click', closeModal);
+    document.getElementById('admin-modal-cancel2').addEventListener('click', closeModal);
+    modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+
+    function tryLogin() {
+      const val = pwInput.value;
+      if (val === getAdminPw()) {
+        localStorage.setItem(ADMIN_SESSION_KEY, '1');
+        refreshAdminUI();
+        loginForm.style.display  = 'none';
+        loggedInEl.style.display = 'flex';
+        msgEl.textContent = '';
+      } else {
+        msgEl.textContent = '❌ Wrong code';
+        pwInput.value = '';
+        pwInput.focus();
+      }
+    }
+
+    document.getElementById('admin-modal-submit').addEventListener('click', tryLogin);
+    pwInput.addEventListener('keydown', e => { if (e.key === 'Enter') tryLogin(); });
+
+    document.getElementById('admin-logout-btn').addEventListener('click', () => {
+      localStorage.removeItem(ADMIN_SESSION_KEY);
+      refreshAdminUI();
+      loginForm.style.display  = 'flex';
+      loggedInEl.style.display = 'none';
+      pwInput.value = '';
+      msgEl.textContent = '';
+    });
+
+    // ── Superadmin Panel ────────────────────────────────────────────────────────
+    const SA_OVERLAY   = document.getElementById('hub-sa-overlay');
+    const SA_LOGIN     = document.getElementById('hub-sa-login');
+    const SA_CONTROLS  = document.getElementById('hub-sa-controls');
+    let   saAuthed     = false;
+
+    function openSuperadmin(skipLogin) {
+      SA_OVERLAY.style.opacity       = '1';
+      SA_OVERLAY.style.pointerEvents = 'auto';
+      if (skipLogin || localStorage.getItem(ADMIN_SESSION_KEY) === '1') {
+        saEnterControls();
+      } else {
+        saAuthed = false;
+        SA_LOGIN.style.display    = 'flex';
+        SA_CONTROLS.style.display = 'none';
+        document.getElementById('hub-sa-pw').value  = '';
+        document.getElementById('hub-sa-msg').textContent = '';
+        setTimeout(() => document.getElementById('hub-sa-pw').focus(), 120);
+      }
+    }
+
+    function closeSuperadmin() {
+      SA_OVERLAY.style.opacity       = '0';
+      SA_OVERLAY.style.pointerEvents = 'none';
+      saAuthed = false;
+      SA_CONTROLS.style.display = 'none';
+      SA_LOGIN.style.display    = 'flex';
+      document.getElementById('hub-sa-pw').value = '';
+      document.getElementById('hub-sa-msg').textContent = '';
+    }
+
+    function saUpdateStats() {
+      const sess = localStorage.getItem(ADMIN_SESSION_KEY) === '1' ? '🟢 Active' : '🔴 Inactive';
+      const pw   = localStorage.getItem('kq_adm_pw') || '4474 (default)';
+      const hi   = localStorage.getItem('nq_snake_hi') || '0';
+      document.getElementById('hub-sa-stat-session').textContent = sess;
+      document.getElementById('hub-sa-stat-pw').textContent      = pw;
+      document.getElementById('hub-sa-stat-hi').textContent      = hi;
+    }
+
+    function saEnterControls() {
+      saAuthed = true;
+      SA_LOGIN.style.display    = 'none';
+      SA_CONTROLS.style.display = 'flex';
+      // clear pw change fields
+      ['hub-sa-admpw1','hub-sa-admpw2','hub-sa-superpw1','hub-sa-superpw2'].forEach(id => {
+        document.getElementById(id).value = '';
+      });
+      ['hub-sa-admpw-msg','hub-sa-superpw-msg'].forEach(id => {
+        document.getElementById(id).textContent = '';
+      });
+      saUpdateStats();
+    }
+
+    // Login
+    document.getElementById('hub-sa-pw').addEventListener('keydown', e => {
+      if (e.key === 'Enter') saDoLogin();
+    });
+
+    function saDoLogin() {
+      const code   = document.getElementById('hub-sa-pw').value;
+      const stored = localStorage.getItem('kq_super_pw') || '12341234';
+      const msgEl  = document.getElementById('hub-sa-msg');
+      if (code === stored) {
+        msgEl.style.color = '#55ee88';
+        msgEl.textContent = '✓ Access granted';
+        setTimeout(saEnterControls, 400);
+      } else {
+        msgEl.style.color = '#ff6666';
+        msgEl.textContent = '✗ Invalid code';
+        document.getElementById('hub-sa-pw').value = '';
+      }
+    }
+
+    document.getElementById('hub-sa-cancel').addEventListener('click', closeSuperadmin);
+    document.getElementById('hub-sa-close').addEventListener('click',  closeSuperadmin);
+
+    // Change admin pw
+    document.getElementById('hub-sa-save-admpw').addEventListener('click', () => {
+      const v1  = document.getElementById('hub-sa-admpw1').value.trim();
+      const v2  = document.getElementById('hub-sa-admpw2').value.trim();
+      const msg = document.getElementById('hub-sa-admpw-msg');
+      if (!v1) { msg.style.color='#ff8866'; msg.textContent='Enter a password'; return; }
+      if (v1 !== v2) { msg.style.color='#ff8866'; msg.textContent='Passwords do not match'; return; }
+      localStorage.setItem('kq_adm_pw', v1);
+      msg.style.color = '#55ee88';
+      msg.textContent = '✓ Admin password updated';
+      document.getElementById('hub-sa-admpw1').value = '';
+      document.getElementById('hub-sa-admpw2').value = '';
+      saUpdateStats();
+    });
+
+    // Change superadmin code
+    document.getElementById('hub-sa-save-superpw').addEventListener('click', () => {
+      const v1  = document.getElementById('hub-sa-superpw1').value.trim();
+      const v2  = document.getElementById('hub-sa-superpw2').value.trim();
+      const msg = document.getElementById('hub-sa-superpw-msg');
+      if (!v1) { msg.style.color='#ff8866'; msg.textContent='Enter a code'; return; }
+      if (v1 !== v2) { msg.style.color='#ff8866'; msg.textContent='Codes do not match'; return; }
+      localStorage.setItem('kq_super_pw', v1);
+      msg.style.color = '#55ee88';
+      msg.textContent = '✓ Superadmin code updated';
+      document.getElementById('hub-sa-superpw1').value = '';
+      document.getElementById('hub-sa-superpw2').value = '';
+    });
+
+    // Revoke session
+    document.getElementById('hub-sa-revoke').addEventListener('click', () => {
+      localStorage.removeItem(ADMIN_SESSION_KEY);
+      refreshAdminUI();
+      saUpdateStats();
+      const btn = document.getElementById('hub-sa-revoke');
+      const orig = btn.textContent;
+      btn.textContent = '✓ Session revoked';
+      setTimeout(() => { btn.textContent = orig; }, 1800);
+    });
+
+    // Wipe all data
+    document.getElementById('hub-sa-wipe-all').addEventListener('click', () => {
+      if (!confirm('Wipe ALL game data (scores, passwords, sessions)? This cannot be undone.')) return;
+      ['kq_adm_pw','kq_super_pw','kq_admin_session','nq_snake_hi',
+       'kq_adm_attempts','kq_adm_lock'].forEach(k => localStorage.removeItem(k));
+      refreshAdminUI();
+      saUpdateStats();
+      closeSuperadmin();
+      alert('All game data wiped.');
+    });
+
+    // "Superadmin Panel" button in admin modal
+    document.getElementById('admin-open-super').addEventListener('click', () => {
+      closeModal();
+      setTimeout(openSuperadmin, 180);
+    });
+
+    // Secret word "root" opens superadmin from hub
+    (function() {
+      const SECRET = 'root';
+      let buf = '', timer = null;
+      document.addEventListener('keydown', e => {
+        const tag = document.activeElement ? document.activeElement.tagName : '';
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+        buf += e.key.toLowerCase();
+        if (buf.length > SECRET.length) buf = buf.slice(-SECRET.length);
+        clearTimeout(timer);
+        timer = setTimeout(() => { buf = ''; }, 1800);
+        if (buf === SECRET) { buf = ''; clearTimeout(timer); openSuperadmin(); }
+      });
+    })();
+  </script>
+</body>
+</html>

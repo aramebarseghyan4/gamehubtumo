@@ -349,6 +349,33 @@
       pointer-events: none;
       filter: drop-shadow(0 0 3px rgba(180,80,255,0.65));
     }
+    /* ── Hub button ─────────────────────────────── */
+    #hub-btn {
+      position: fixed;
+      top: 12px;
+      left: calc(var(--pillar-w) + 10px);
+      background: rgba(20,10,48,0.82);
+      border: 1px solid rgba(160,100,255,0.35);
+      color: #a090d0;
+      padding: 8px 16px;
+      border-radius: 10px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.18s, color 0.18s, border-color 0.18s, box-shadow 0.18s, transform 0.12s;
+      z-index: 1600;
+      backdrop-filter: blur(8px);
+    }
+    #hub-btn:hover {
+      background: rgba(100,60,220,0.28);
+      color: #d0c0ff;
+      border-color: rgba(160,100,255,0.65);
+      box-shadow: 0 0 16px rgba(140,80,255,0.35);
+      transform: translateY(-1px);
+    }
+
     /* ── Full Reset button ───────────────────────── */
     #full-reset-btn {
       position: fixed;
@@ -831,7 +858,7 @@
     #menu-btn {
       position: fixed;
       top: 12px;
-      left: calc(var(--pillar-w) + 10px);   /* always clears left pillar */
+      left: calc(var(--pillar-w) + 90px);
       background: rgba(20,10,48,0.82);
       border: 1px solid rgba(160,100,255,0.35);
       color: #a090d0;
@@ -1827,8 +1854,9 @@
         <div id="adm-grid-post-title">★ Unlocked Features</div>
         <button id="adm-secret"     class="adm-btn post full">🗺️ Unlock Secret Level</button>
         <button id="adm-skin"       class="adm-btn post full">🎨 Cycle Character Skin</button>
-        <button id="adm-unlock-all" class="adm-btn post full">🔓 Unlock All Levels</button>
-        <button id="adm-reset"      class="adm-btn post full">🔄 Reset Progress</button>
+        <button id="adm-unlock-all"   class="adm-btn post full">🔓 Unlock All Levels</button>
+        <button id="adm-reset"        class="adm-btn post full">🔄 Reset Progress</button>
+        <button id="adm-open-super"   class="adm-btn post full" style="border-color:rgba(157,0,255,0.45);color:#cc88ff;background:rgba(80,0,160,0.18);">🔧 Superadmin Panel</button>
       </div>
 
       <!-- Admin Exclusive Accessories -->
@@ -1977,6 +2005,7 @@
   </div>
 
   <!-- In-game Menu button (top-left, shown only after game starts) -->
+  <a href="index.html" id="hub-btn">🎮 Hub</a>
   <button id="menu-btn">☰ Menu</button>
 
   <!-- Full Reset button (top-right, always visible) -->
@@ -2069,7 +2098,7 @@
     let godMode           = false;
     let freezeEnemies     = false;
     let superSpeed        = false;
-    let adminUnlocked     = false;
+    let adminUnlocked     = localStorage.getItem('kq_admin_session') === '1';
     let adminPassword     = localStorage.getItem('kq_adm_pw') || '4474';
     let superadminCode    = localStorage.getItem('kq_super_pw') || '12341234';
     let superadminUnlocked = false;
@@ -5277,6 +5306,11 @@
       document.getElementById('adm-freeze').classList.remove('active');
       document.getElementById('adm-speed').classList.remove('active');
       updateHUD();
+    });
+
+    document.getElementById('adm-open-super').addEventListener('click', () => {
+      closeAdminSidebar();
+      openSuperadminSidebar();
     });
 
     // ── Admin Accessories ───────────────────────────────────────────────────
