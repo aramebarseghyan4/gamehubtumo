@@ -376,11 +376,25 @@
       transform: translateY(-1px);
     }
 
+    /* ── Superadmin button ── */
+    #kq-super-hint {
+      position: fixed;
+      top: 17px;
+      right: calc(var(--pillar-w) + 120px);
+      font-size: 0.62rem;
+      font-style: italic;
+      letter-spacing: 0.05em;
+      color: #6a4fa0;
+      user-select: none;
+      pointer-events: none;
+      z-index: 1500;
+    }
+
     /* ── Full Reset button ───────────────────────── */
     #full-reset-btn {
       position: fixed;
       top: 12px;
-      right: calc(var(--pillar-w) + 10px);  /* always clears right pillar */
+      right: calc(var(--pillar-w) + 10px);
       background: rgba(20,10,48,0.82);
       border: 1px solid rgba(255,80,80,0.28);
       color: #a08090;
@@ -1669,6 +1683,106 @@
       box-shadow: 0 0 12px rgba(157,0,255,0.28);
     }
 
+    /* ── Mobile D-pad ───────────────────────────────────────────────────── */
+    #kq-dpad {
+      display: none;
+      position: fixed;
+      bottom: 20px;
+      left: 14px;
+      z-index: 800;
+      grid-template-columns: 52px 52px 52px;
+      grid-template-rows: 52px 52px 52px;
+      gap: 4px;
+      user-select: none;
+      touch-action: none;
+      opacity: 0.45;
+      transition: opacity 0.18s;
+    }
+    #kq-dpad.touching { opacity: 1; }
+    @media (pointer: coarse) { #kq-dpad { display: grid; } }
+    .kq-dp-btn {
+      background: rgba(80,20,160,0.30);
+      border: 1.5px solid rgba(160,80,255,0.40);
+      border-radius: 14px;
+      color: rgba(200,150,255,0.95);
+      font-size: 1.25rem;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      backdrop-filter: blur(10px);
+      transition: background 0.08s, transform 0.08s, box-shadow 0.08s;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: none;
+    }
+    .kq-dp-btn:active, .kq-dp-btn.pressed {
+      background: rgba(160,80,255,0.50);
+      transform: scale(0.88);
+      box-shadow: 0 0 12px rgba(160,80,255,0.60);
+    }
+    .kq-dp-empty { visibility: hidden; }
+
+    /* ── Ghost action button ─────────────────────────────────────────────── */
+    #kq-ghost-btn {
+      display: none;
+      position: fixed;
+      bottom: 20px;
+      right: 14px;
+      z-index: 800;
+      width: 84px;
+      height: 84px;
+      border-radius: 50%;
+      background: rgba(40,0,100,0.35);
+      border: 2px solid rgba(140,60,255,0.50);
+      color: rgba(200,140,255,0.95);
+      cursor: pointer;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      backdrop-filter: blur(10px);
+      -webkit-tap-highlight-color: transparent;
+      touch-action: none;
+      transition: opacity 0.18s, transform 0.10s, box-shadow 0.18s;
+      opacity: 0.50;
+      user-select: none;
+      position: fixed;
+
+      /* Conic-gradient progress ring */
+      --pct: 100%;
+    }
+    @media (pointer: coarse) { #kq-ghost-btn { display: flex; } }
+
+    #kq-ghost-btn::before {
+      content: '';
+      position: absolute;
+      inset: -4px;
+      border-radius: 50%;
+      background: conic-gradient(rgba(160,80,255,0.70) var(--pct), rgba(255,255,255,0.06) var(--pct));
+      z-index: -1;
+      transition: background 0.3s;
+    }
+    #kq-ghost-btn.touching { opacity: 1; transform: scale(0.92); box-shadow: 0 0 18px rgba(160,80,255,0.55); }
+    #kq-ghost-btn.ghost-ready { border-color: rgba(160,80,255,0.75); opacity: 0.70; }
+    #kq-ghost-btn.ghost-ready::before { background: conic-gradient(rgba(180,80,255,0.85) 100%, transparent 100%); }
+    #kq-ghost-btn.ghost-on {
+      border-color: rgba(0,220,255,0.80);
+      background: rgba(0,40,100,0.45);
+      opacity: 1;
+      box-shadow: 0 0 22px rgba(0,200,255,0.50);
+      animation: ghostPulse 0.8s ease-in-out infinite;
+    }
+    #kq-ghost-btn.ghost-on::before { background: conic-gradient(rgba(0,220,255,0.80) var(--pct), rgba(255,255,255,0.06) var(--pct)); }
+    #kq-ghost-btn.ghost-cd {
+      border-color: rgba(100,60,160,0.40);
+      opacity: 0.38;
+    }
+    #kq-ghost-btn.ghost-cd::before { background: conic-gradient(rgba(100,60,160,0.55) var(--pct), rgba(255,255,255,0.04) var(--pct)); }
+    @keyframes ghostPulse {
+      0%,100% { box-shadow: 0 0 18px rgba(0,200,255,0.45); }
+      50%      { box-shadow: 0 0 34px rgba(0,220,255,0.80); }
+    }
+    .ghost-icon  { font-size: 1.7rem; line-height: 1; }
+    .ghost-label { font-size: 0.60rem; font-family: 'Orbitron', monospace; letter-spacing: 0.04em; color: rgba(200,160,255,0.85); }
+
     /* ── Anti-cheat toast ───────────────────────────────────────────────── */
     #ac-toast {
       display: none;
@@ -1702,6 +1816,14 @@
       opacity: 0;
     }
   </style>
+  <script>
+    document.addEventListener('contextmenu', e => e.preventDefault());
+    document.addEventListener('keydown', e => {
+      if (e.key === 'F12') { e.preventDefault(); return; }
+      if (e.ctrlKey && e.shiftKey && ['I','J','C'].includes(e.key.toUpperCase())) { e.preventDefault(); return; }
+      if (e.ctrlKey && e.key.toUpperCase() === 'U') { e.preventDefault(); return; }
+    });
+  </script>
 </head>
 <body>
 
@@ -1816,7 +1938,7 @@
 
     <!-- Bottom bar: hint on the left, checkpoint center, admin right -->
     <div id="game-bottom-bar">
-      <div id="hint">WASD to move &nbsp;·&nbsp; Collect all keys, reach the exit &nbsp;·&nbsp; Q = Ghost Mode</div>
+      <div id="hint">WASD / D-pad to move &nbsp;·&nbsp; Collect all keys, reach the exit &nbsp;·&nbsp; Q = Ghost Mode</div>
       <button id="checkpoint-btn">💾 Save (50🍬)</button>
       <div id="admin-panel">
         <button id="admin-toggle">⚙ Admin (P)</button>
@@ -1824,6 +1946,25 @@
     </div>
 
   </div><!-- /#game-container -->
+
+  <!-- ── Mobile D-pad ─────────────────────────────────────────────────── -->
+  <div id="kq-dpad">
+    <div class="kq-dp-empty"></div>
+    <button class="kq-dp-btn" id="kq-dp-up">▲</button>
+    <div class="kq-dp-empty"></div>
+    <button class="kq-dp-btn" id="kq-dp-left">◀</button>
+    <div class="kq-dp-empty"></div>
+    <button class="kq-dp-btn" id="kq-dp-right">▶</button>
+    <div class="kq-dp-empty"></div>
+    <button class="kq-dp-btn" id="kq-dp-down">▼</button>
+    <div class="kq-dp-empty"></div>
+  </div>
+
+  <!-- ── Ghost action button ───────────────────────────────────────────── -->
+  <button id="kq-ghost-btn">
+    <div class="ghost-icon">👻</div>
+    <div class="ghost-label" id="kq-ghost-label">Q</div>
+  </button>
 
   <!-- ── Admin Sidebar (fixed right, never overlaps canvas) ─────────── -->
   <div id="admin-sidebar">
@@ -1857,6 +1998,7 @@
         <button id="adm-unlock-all"   class="adm-btn post full">🔓 Unlock All Levels</button>
         <button id="adm-reset"        class="adm-btn post full">🔄 Reset Progress</button>
         <button id="adm-open-super"   class="adm-btn post full" style="border-color:rgba(157,0,255,0.45);color:#cc88ff;background:rgba(80,0,160,0.18);">🔧 Superadmin Panel</button>
+        <button id="adm-logout"       class="adm-btn post full" style="border-color:rgba(255,60,60,0.45);color:#ff8888;background:rgba(120,0,0,0.18);">🚪 Log Out</button>
       </div>
 
       <!-- Admin Exclusive Accessories -->
@@ -1958,6 +2100,9 @@
         </div>
 
       </div><!-- /#sa-grid -->
+      <div style="padding:10px 18px 4px;display:flex;justify-content:flex-end;">
+        <button id="adm-exit-super-session" style="background:linear-gradient(135deg,rgba(80,0,120,0.55),rgba(50,0,80,0.45));border:1px solid rgba(180,80,255,0.45);color:#cc88ff;padding:9px 20px;border-radius:10px;cursor:pointer;font-size:0.75rem;font-weight:700;letter-spacing:0.05em;">🔒 Exit Superadmin Session</button>
+      </div>
     </div><!-- /#adm-super-controls -->
 
   </div><!-- /#superadmin-sidebar -->
@@ -2008,6 +2153,9 @@
   <a href="index.html" id="hub-btn">🎮 Hub</a>
   <button id="menu-btn">☰ Menu</button>
 
+  <!-- Superadmin hint text (top-right) -->
+  <div id="kq-super-hint">🔧 Enter the correct code</div>
+
   <!-- Full Reset button (top-right, always visible) -->
   <button id="full-reset-btn">↺ Full Reset</button>
 
@@ -2024,6 +2172,7 @@
   </div>
 
   <script>
+    localStorage.removeItem('kq_super_pw');
     // ── Anti-tamper protections ────────────────────────────────────────────
     let _acToastTimer = null;
     function showAcToast() {
@@ -2042,6 +2191,33 @@
     }
 
     document.addEventListener('contextmenu', e => { e.preventDefault(); showAcToast(); });
+
+    let _kqHintTimer = null;
+    function showKqHint(msg) {
+      let el = document.getElementById('kq-hint-toast');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'kq-hint-toast';
+        Object.assign(el.style, {
+          position:'fixed', bottom:'32px', left:'50%', transform:'translateX(-50%) translateY(20px)',
+          background:'rgba(14,8,30,0.96)', border:'1.5px solid rgba(255,160,60,0.60)',
+          borderRadius:'12px', padding:'11px 24px', fontSize:'0.78rem', fontWeight:'700',
+          letterSpacing:'0.06em', color:'#ffcc88', boxShadow:'0 0 24px rgba(200,100,0,0.35)',
+          zIndex:'9999', pointerEvents:'none', opacity:'0',
+          transition:'opacity 0.22s ease, transform 0.22s ease',
+          fontFamily:"'Orbitron',sans-serif", textAlign:'center', whiteSpace:'nowrap',
+        });
+        document.body.appendChild(el);
+      }
+      clearTimeout(_kqHintTimer);
+      el.textContent  = msg;
+      el.style.opacity   = '1';
+      el.style.transform = 'translateX(-50%) translateY(0)';
+      _kqHintTimer = setTimeout(() => {
+        el.style.opacity   = '0';
+        el.style.transform = 'translateX(-50%) translateY(20px)';
+      }, 3000);
+    }
 
     document.addEventListener('keydown', e => {
       const c = e.key, ctrl = e.ctrlKey || e.metaKey, shift = e.shiftKey, alt = e.altKey;
@@ -2758,6 +2934,9 @@
         map,
         row:      startRow,
         col:      startCol,
+        prevRow:  startRow,
+        prevCol:  startCol,
+        lastMoveTime: 0,
         startRow,           // kept so we can respawn after hitting a trap or enemy
         startCol,
         lives:         diff.lives,
@@ -3859,6 +4038,14 @@
       // t = elapsed seconds since page load (from requestAnimationFrame timestamp)
       const { map, row, col, doorUnlocked, fx, damageFx } = state;
 
+      // Smooth player position interpolation (ease-out)
+      const _raw  = state.lastMoveTime > 0
+        ? Math.min(1, (performance.now() - state.lastMoveTime) / Math.max(30, _currentMoveMs))
+        : 1;
+      const _prog = 1 - Math.pow(1 - _raw, 2);
+      const _drawCol = (state.prevCol + (col - state.prevCol) * _prog);
+      const _drawRow = (state.prevRow + (row - state.prevRow) * _prog);
+
       ctx.fillStyle = THEME.canvasBg || '#0d0b14';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -3939,8 +4126,40 @@
         ctx.shadowBlur = 0;
       }
 
-      // Player drawn last (on top of everything)
-      drawPlayer(col * CELL, row * CELL);
+      // Player drawn last (on top of everything) — interpolated position
+      const _pdr = state.row - state.prevRow;
+      const _pdc = state.col - state.prevCol;
+      const _moving = (_pdr !== 0 || _pdc !== 0) && _prog < 1;
+
+      // Motion trail — ghost images fading behind
+      if (_moving && _prog < 0.72) {
+        for (let _ti = 1; _ti <= 2; _ti++) {
+          const _tp  = Math.max(0, _prog - _ti * 0.18);
+          const _tcp = 1 - Math.pow(1 - _tp, 2);
+          const _tx  = (state.prevCol + (col - state.prevCol) * _tcp) * CELL;
+          const _ty  = (state.prevRow + (row - state.prevRow) * _tcp) * CELL;
+          ctx.save();
+          ctx.globalAlpha = (0.18 - _ti * 0.07) * (1 - _prog);
+          drawPlayer(_tx, _ty);
+          ctx.restore();
+        }
+      }
+
+      // Squash & stretch + lean in movement direction
+      const _pCx = _drawCol * CELL + CELL / 2;
+      const _pCy = _drawRow * CELL + CELL / 2;
+      const _stretch = _moving ? Math.sin(_prog * Math.PI) * 0.22 : 0;
+      const _scaleX  = _pdc !== 0 ? 1 + _stretch : (_pdr !== 0 ? 1 - _stretch * 0.55 : 1);
+      const _scaleY  = _pdr !== 0 ? 1 + _stretch : (_pdc !== 0 ? 1 - _stretch * 0.55 : 1);
+      const _lean    = _pdc * Math.sin(_prog * Math.PI) * 0.18;
+
+      ctx.save();
+      ctx.translate(_pCx, _pCy);
+      ctx.rotate(_lean);
+      ctx.scale(_scaleX, _scaleY);
+      ctx.translate(-_pCx, -_pCy);
+      drawPlayer(_drawCol * CELL, _drawRow * CELL);
+      ctx.restore();
 
       // Also reset shadow after player draw
       ctx.shadowBlur = 0;
@@ -4170,6 +4389,27 @@
         gs.className   = '';
       }
 
+      // Sync mobile ghost button
+      const gb = document.getElementById('kq-ghost-btn');
+      const gl = document.getElementById('kq-ghost-label');
+      if (gb && gl) {
+        if (state.ghostActive) {
+          gb.className   = 'ghost-on';
+          gl.textContent = Math.ceil(state.ghostTimer) + 's';
+          const pct = Math.round((state.ghostTimer / 3.5) * 100);
+          gb.style.setProperty('--pct', pct + '%');
+        } else if (state.ghostCooldown > 0) {
+          gb.className   = 'ghost-cd';
+          gl.textContent = Math.ceil(state.ghostCooldown) + 's';
+          const pct = Math.round((1 - state.ghostCooldown / 25) * 100);
+          gb.style.setProperty('--pct', pct + '%');
+        } else {
+          gb.className   = 'ghost-ready';
+          gl.textContent = 'Q';
+          gb.style.setProperty('--pct', '100%');
+        }
+      }
+
       const portalHud = document.getElementById('hud-portal');
       const ps        = document.getElementById('portal-status');
       if (portalHud && ps) {
@@ -4242,7 +4482,10 @@
       if (tile === 0 && !ghost) return;                  // wall — blocked (ghost walks through)
       if (tile === 4 && !state.doorUnlocked) return;     // locked door — always blocked
 
-      // Move is legal — update position
+      // Move is legal — save previous position for interpolation, then update
+      state.prevRow = state.row;
+      state.prevCol = state.col;
+      state.lastMoveTime = performance.now();
       state.row = newRow;
       state.col = newCol;
 
@@ -4743,14 +4986,24 @@
       gamePaused = false;
     }
 
+    const KQ_SA_SES = 'kq_super_session';
+    function isSuperSession() { return localStorage.getItem(KQ_SA_SES) === '1'; }
+
     function openSuperadminSidebar() {
       document.getElementById('superadmin-sidebar').classList.add('open');
-      if (!superadminUnlocked) {
+      if (isSuperSession()) {
+        document.getElementById('adm-super-login').style.display    = 'none';
+        document.getElementById('adm-super-controls').style.display = 'flex';
+        superadminUnlocked = true;
+      } else {
         setTimeout(() => document.getElementById('adm-super-pw').focus(), 50);
       }
     }
     function closeSuperadminSidebar() {
       document.getElementById('superadmin-sidebar').classList.remove('open');
+    }
+    function exitSuperSession() {
+      localStorage.removeItem(KQ_SA_SES);
       superadminUnlocked = false;
       document.getElementById('adm-super-login').style.display    = 'flex';
       document.getElementById('adm-super-controls').style.display = 'none';
@@ -4762,8 +5015,40 @@
       document.getElementById('adm-new-super2').value     = '';
       document.getElementById('adm-pw-msg').textContent        = '';
       document.getElementById('adm-super-code-msg').textContent = '';
+      closeSuperadminSidebar();
     }
+    function showToast(msg, color) {
+      let t = document.getElementById('kq-toast');
+      if (!t) {
+        t = document.createElement('div');
+        t.id = 'kq-toast';
+        Object.assign(t.style, {
+          position:'fixed', bottom:'32px', left:'50%', transform:'translateX(-50%) translateY(20px)',
+          background:'rgba(14,8,30,0.96)', border:'1.5px solid rgba(160,80,255,0.55)',
+          borderRadius:'12px', padding:'11px 24px', fontSize:'0.82rem', fontWeight:'700',
+          letterSpacing:'0.06em', color:'#d0aaff', boxShadow:'0 0 28px rgba(120,0,220,0.40)',
+          zIndex:'9999', pointerEvents:'none', opacity:'0',
+          transition:'opacity 0.22s ease, transform 0.22s ease',
+          fontFamily:"system-ui,sans-serif", textAlign:'center', whiteSpace:'nowrap',
+        });
+        document.body.appendChild(t);
+      }
+      clearTimeout(t._timer);
+      t.style.color = color || '#d0aaff';
+      t.textContent = msg;
+      t.style.opacity = '1';
+      t.style.transform = 'translateX(-50%) translateY(0)';
+      t._timer = setTimeout(() => {
+        t.style.opacity = '0';
+        t.style.transform = 'translateX(-50%) translateY(20px)';
+      }, 3000);
+    }
+
     function toggleAdminPanel() {
+      if (!adminUnlocked) {
+        showToast('⛔ Access denied — please log in as Admin from the Hub first', '#ff5555');
+        return;
+      }
       const sidebar = document.getElementById('admin-sidebar');
       if (sidebar.classList.contains('open')) closeAdminSidebar();
       else openAdminSidebar();
@@ -4781,9 +5066,10 @@
       d:[0,1],  D:[0,1],
     };
     const pressedKeys = {};
-    let _moveInterval = null;
-    let _activeKey    = null;   // direction currently executing
-    let _nextKey      = null;   // buffered direction (Pac-Man queue)
+    let _moveInterval    = null;
+    let _activeKey       = null;
+    let _nextKey         = null;
+    let _currentMoveMs   = 180;  // current interval duration for interpolation
 
     // Returns true if the player can step one tile in direction [dr,dc]
     function canMove(dr, dc) {
@@ -4830,6 +5116,7 @@
       moveTick();
       // Start/restart the repeat interval
       clearInterval(_moveInterval);
+      _currentMoveMs = superSpeed ? 100 : speedBoostTimer > 0 ? 108 : 180;
       _moveInterval = setInterval(() => {
         // Stop only if no keys are held at all
         if (!Object.keys(MOVE_DIRS).some(k => pressedKeys[k])) {
@@ -4838,7 +5125,7 @@
           return;
         }
         moveTick();
-      }, superSpeed ? 100 : speedBoostTimer > 0 ? 108 : 180);
+      }, _currentMoveMs);
     }
 
     document.addEventListener('keydown', (e) => {
@@ -4864,7 +5151,11 @@
           break;
         case 'p': case 'P':
           e.preventDefault();
-          toggleAdminPanel();
+          if (adminUnlocked) {
+            toggleAdminPanel();
+          } else {
+            showKqHint('⚠ Login as Admin from the main menu first');
+          }
           break;
         case 'e': case 'E':
           if (gameStarted && !gamePaused && !state.won && !state.gameOver && state.portals.length === 2) {
@@ -4907,6 +5198,110 @@
       stopMovement();
       _nextKey = null;
     });
+
+    // ── D-pad touch controls ──────────────────────────────────────────────────
+    (function initDpad() {
+      // Apply hub control setting
+      const ctrl = localStorage.getItem('hub_control');
+      const dpadEl = document.getElementById('kq-dpad');
+      if (dpadEl) {
+        if (ctrl === 'mobile') dpadEl.style.display = 'grid';
+        else if (ctrl === 'pc') dpadEl.style.display = 'none';
+      }
+
+      const dpadMap = {
+        'kq-dp-up':    'w',
+        'kq-dp-down':  's',
+        'kq-dp-left':  'a',
+        'kq-dp-right': 'd',
+      };
+      let activeTouchIds = {}; // touchId → key
+
+      Object.entries(dpadMap).forEach(([id, key]) => {
+        const btn = document.getElementById(id);
+        if (!btn) return;
+
+        btn.addEventListener('touchstart', e => {
+          e.preventDefault();
+          btn.classList.add('pressed');
+          dpadEl && dpadEl.classList.add('touching');
+          pressedKeys[key] = true;
+          activeTouchIds[e.changedTouches[0].identifier] = key;
+          startMovement(key);
+        }, { passive: false });
+
+        const _endTouch = (e) => {
+          btn.classList.remove('pressed');
+          pressedKeys[key] = false;
+          delete activeTouchIds[e.changedTouches[0].identifier];
+          if (!Object.values(activeTouchIds).length) {
+            dpadEl && dpadEl.classList.remove('touching');
+            stopMovement();
+            _nextKey = null;
+          }
+        };
+        btn.addEventListener('touchend',    e => { e.preventDefault(); _endTouch(e); }, { passive: false });
+        btn.addEventListener('touchcancel', e => { _endTouch(e); }, { passive: false });
+      });
+
+      // Ghost button touch
+      const ghostBtn = document.getElementById('kq-ghost-btn');
+      if (ghostBtn) {
+        ghostBtn.addEventListener('touchstart', e => {
+          e.preventDefault();
+          ghostBtn.classList.add('touching');
+          if (gameStarted && !gamePaused && !state.ghostActive && state.ghostCooldown === 0 && !state.won && !state.gameOver) {
+            state.ghostActive = true;
+            state.ghostTimer  = 3.5;
+            document.getElementById('game-container').classList.add('ghost-active');
+            updateHUD();
+          }
+        }, { passive: false });
+        ghostBtn.addEventListener('touchend',    () => ghostBtn.classList.remove('touching'));
+        ghostBtn.addEventListener('touchcancel', () => ghostBtn.classList.remove('touching'));
+        ghostBtn.addEventListener('click', () => {
+          if (gameStarted && !gamePaused && !state.ghostActive && state.ghostCooldown === 0 && !state.won && !state.gameOver) {
+            state.ghostActive = true;
+            state.ghostTimer  = 3.5;
+            document.getElementById('game-container').classList.add('ghost-active');
+            updateHUD();
+          }
+        });
+      }
+
+      // Apply hub control
+      if (ghostBtn) {
+        if (ctrl === 'mobile') ghostBtn.style.display = 'flex';
+        else if (ctrl === 'pc') ghostBtn.style.display = 'none';
+      }
+
+      // Swipe on canvas as fallback
+      const cvs = document.getElementById('game-canvas');
+      if (!cvs) return;
+      let _swipeStart = null;
+      cvs.addEventListener('touchstart', e => {
+        if (e.touches.length === 1) {
+          _swipeStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        }
+      }, { passive: true });
+      cvs.addEventListener('touchend', e => {
+        if (!_swipeStart) return;
+        const dx = e.changedTouches[0].clientX - _swipeStart.x;
+        const dy = e.changedTouches[0].clientY - _swipeStart.y;
+        _swipeStart = null;
+        if (Math.abs(dx) < 14 && Math.abs(dy) < 14) return;
+        const key = Math.abs(dx) > Math.abs(dy)
+          ? (dx > 0 ? 'd' : 'a')
+          : (dy > 0 ? 's' : 'w');
+        pressedKeys[key] = true;
+        startMovement(key);
+        setTimeout(() => {
+          pressedKeys[key] = false;
+          stopMovement();
+          _nextKey = null;
+        }, 160);
+      }, { passive: true });
+    })();
 
     // ======================================================================
     // RESET
@@ -5154,7 +5549,15 @@
 
     document.getElementById('admin-sidebar-close').addEventListener('click', closeAdminSidebar);
     document.getElementById('admin-toggle').addEventListener('click', toggleAdminPanel);
+
+    document.getElementById('adm-logout').addEventListener('click', () => {
+      localStorage.removeItem('kq_admin_session');
+      adminUnlocked = false;
+      closeAdminSidebar();
+      showToast('🚪 Logged out of Admin', '#ff8888');
+    });
     document.getElementById('superadmin-sidebar-close').addEventListener('click', closeSuperadminSidebar);
+    document.getElementById('adm-exit-super-session').addEventListener('click', exitSuperSession);
 
     document.getElementById('adm-shield').addEventListener('click', () => {
       godMode = !godMode;
@@ -5349,6 +5752,7 @@
       if (e.target.value === superadminCode) {
         playSound('adminSuccess');
         superadminUnlocked = true;
+        localStorage.setItem(KQ_SA_SES, '1');
         e.target.value = '';
         document.getElementById('adm-super-login').style.display    = 'none';
         document.getElementById('adm-super-controls').style.display = 'flex';
@@ -5509,9 +5913,9 @@
     });
 
 
-    // ── Secret word "root" → open superadmin ────────────────────────────────
+    // ── Secret word "ooo" → open superadmin ─────────────────────────────────
     (function() {
-      const SECRET = 'root';
+      const SECRET = 'ooo';
       let buf = '';
       let timer = null;
       document.addEventListener('keydown', (e) => {

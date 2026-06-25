@@ -8,12 +8,11 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root { --pillar-w: clamp(28px, 5vw, 72px); }
-    html, body { height: 100%; overflow: hidden; background: #06030F; }
+    html, body { height: 100%; overflow: hidden; background: #04020A; touch-action: none; }
 
     body::before, body::after {
-      content: '';
-      position: fixed;
-      top: 0; width: var(--pillar-w); height: 100vh;
+      content: ''; position: fixed; top: 0;
+      width: var(--pillar-w); height: 100vh;
       z-index: 100; pointer-events: none;
     }
     body::before {
@@ -39,11 +38,11 @@
       z-index: 200;
       background: rgba(20,10,48,0.85);
       border: 1px solid rgba(160,80,255,0.35);
-      color: #8060c0; padding: 8px 18px;
+      color: #8060c0; padding: 10px 20px; min-height: 44px;
       border-radius: 10px;
       font-family: 'Orbitron', monospace;
       font-size: 0.72rem; font-weight: 700;
-      letter-spacing: 0.06em; cursor: pointer;
+      letter-spacing: 0.06em;
       backdrop-filter: blur(10px); text-decoration: none;
       transition: background .18s, color .18s, box-shadow .18s, transform .12s;
     }
@@ -66,12 +65,63 @@
 
     #hint {
       position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%);
-      z-index: 200; color: rgba(130,90,200,.55);
-      font-size: 0.7rem; letter-spacing: 0.14em; text-transform: uppercase;
+      z-index: 200; color: rgba(130,90,200,.45);
+      font-size: 0.68rem; letter-spacing: 0.16em; text-transform: uppercase;
       pointer-events: none; white-space: nowrap;
       font-family: 'Courier New', monospace;
     }
+
+    /* ── Anti-cheat toast ───────────────────────────────────────────────── */
+    #ac-toast {
+      display: none;
+      position: fixed;
+      top: 18px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-120%);
+      z-index: 99999;
+      padding: 11px 22px;
+      border-radius: 10px;
+      background: rgba(20, 0, 0, 0.92);
+      border: 1.5px solid #ff2222;
+      color: #ff5555;
+      font-family: 'Courier New', monospace;
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      white-space: nowrap;
+      box-shadow: 0 0 24px rgba(255, 0, 0, 0.55), 0 4px 20px rgba(0,0,0,0.6);
+      pointer-events: none;
+      transition: transform 0.22s cubic-bezier(.22,1,.36,1), opacity 0.22s;
+      opacity: 0;
+    }
+    #ac-toast.show { display: block; transform: translateX(-50%) translateY(0); opacity: 1; }
+    #ac-toast.hide { transform: translateX(-50%) translateY(-120%); opacity: 0; }
   </style>
+  <script>
+    let _acTimer = null;
+    function showAcToast() {
+      const el = document.getElementById('ac-toast');
+      if (!el) return;
+      clearTimeout(_acTimer);
+      el.classList.remove('hide');
+      el.style.display = 'block';
+      requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('show')));
+      _acTimer = setTimeout(() => {
+        el.classList.add('hide');
+        el.classList.remove('show');
+        setTimeout(() => { el.style.display = 'none'; el.classList.remove('hide'); }, 250);
+      }, 2000);
+    }
+    document.addEventListener('contextmenu', e => { e.preventDefault(); showAcToast(); });
+    document.addEventListener('keydown', e => {
+      const ctrl = e.ctrlKey, shift = e.shiftKey, c = e.key.toUpperCase();
+      if (
+        e.key === 'F12' ||
+        (ctrl && shift && (c === 'I' || c === 'J' || c === 'C')) ||
+        (ctrl && c === 'U')
+      ) { e.preventDefault(); e.stopPropagation(); showAcToast(); }
+    }, true);
+  </script>
 </head>
 <body>
 
@@ -79,26 +129,34 @@
 <canvas id="board-canvas"></canvas>
 <a href="index.html" id="back-btn">← Hub</a>
 <div id="title">♟ CHESS</div>
-<div id="hint">Drag to rotate board</div>
+<div id="hint"></div>
+<script>
+  (function() {
+    const ctrl = localStorage.getItem('hub_control');
+    const isMobile = ctrl === 'mobile' || (!ctrl && window.matchMedia('(pointer: coarse)').matches);
+    document.getElementById('hint').innerHTML = isMobile
+      ? 'Drag to rotate &nbsp;·&nbsp; Pinch to zoom'
+      : 'Drag to rotate &nbsp;·&nbsp; Shift + Scroll to zoom';
+  })();
+</script>
 
 <script>
 // ── Stars ─────────────────────────────────────────────────────────────────────
 const sc  = document.getElementById('stars');
 const sct = sc.getContext('2d');
-const STARS = Array.from({length:150}, () => ({
+const STARS = Array.from({length:160}, () => ({
   x: Math.random(), y: Math.random(),
-  r: .3 + Math.random() * 1.1,
+  r: .25 + Math.random() * 1.0,
   b: Math.random() * Math.PI * 2,
-  s: .4 + Math.random() * 1.4
+  s: .3 + Math.random() * 1.2
 }));
 function rsz() { sc.width = innerWidth; sc.height = innerHeight; }
 rsz(); addEventListener('resize', rsz);
-let st = 0;
 (function anim(ts) {
-  st = ts / 1000;
+  const t = ts / 1000;
   sct.clearRect(0, 0, sc.width, sc.height);
   STARS.forEach(s => {
-    sct.globalAlpha = (.25 + .75 * Math.abs(Math.sin(st * s.s + s.b))) * .7;
+    sct.globalAlpha = (.2 + .8 * Math.abs(Math.sin(t * s.s + s.b))) * .65;
     sct.fillStyle = '#fff';
     sct.beginPath();
     sct.arc(s.x * sc.width, s.y * sc.height, s.r, 0, Math.PI * 2);
@@ -112,24 +170,25 @@ let st = 0;
 const bc  = document.getElementById('board-canvas');
 const ctx = bc.getContext('2d');
 
-let az = Math.PI / 4;   // azimuth (horizontal rotation)
-let el = 0.46;           // elevation (vertical tilt)
-const DEPTH = 0.40;      // extrusion depth in tile units
+let az   = Math.PI / 4;
+let el   = 0.72;           // balanced isometric angle
+let zoom = 1.0;
+const DEPTH = 0.52;        // tile slab thickness
+const FP    = 0.44;        // gold frame padding (in tile units)
 
-let TILE = 64;
+let TILE = 60;
 let ox = 0, oy = 0;
 
 let mouseX = -9999, mouseY = -9999;
 let isDrag = false, dragX0, dragY0, az0, el0;
+let pinchDist0 = 0, zoom0 = 1;
 
 function resize2() {
-  bc.width  = innerWidth;
-  bc.height = innerHeight;
-  const avail = Math.min(bc.width * .88, bc.height * .78);
-  TILE = Math.max(42, Math.floor(avail / 11.8));
+  bc.width = innerWidth; bc.height = innerHeight;
+  const avail = Math.min(bc.width * .86, bc.height * .76);
+  TILE = Math.max(38, Math.floor(avail / 12.2));
 }
-resize2();
-addEventListener('resize', resize2);
+resize2(); addEventListener('resize', resize2);
 
 // ── Input ─────────────────────────────────────────────────────────────────────
 bc.style.cursor = 'grab';
@@ -142,32 +201,78 @@ bc.addEventListener('mousedown', e => {
 addEventListener('mousemove', e => {
   mouseX = e.clientX; mouseY = e.clientY;
   if (isDrag) {
-    az = az0 - (e.clientX - dragX0) * 0.0065;
-    el = Math.max(.15, Math.min(1.25, el0 + (e.clientY - dragY0) * 0.004));
+    az = az0 + (e.clientX - dragX0) * 0.0065;
+    el = Math.max(.12, Math.min(1.3, el0 + (e.clientY - dragY0) * 0.004));
   }
 });
 addEventListener('mouseup', () => { isDrag = false; bc.style.cursor = 'grab'; });
+bc.addEventListener('wheel', e => {
+  if (!e.shiftKey) return;
+  e.preventDefault();
+  zoom *= e.deltaY < 0 ? 1.08 : 0.93;
+  zoom = Math.max(0.35, Math.min(4.0, zoom));
+}, { passive: false });
+
+// ── Touch: drag to rotate, pinch to zoom ─────────────────────────────────
+bc.addEventListener('touchstart', e => {
+  e.preventDefault();
+  if (e.touches.length === 1) {
+    isDrag  = true;
+    dragX0  = e.touches[0].clientX;
+    dragY0  = e.touches[0].clientY;
+    az0 = az; el0 = el;
+  } else if (e.touches.length === 2) {
+    isDrag = false;
+    pinchDist0 = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
+    zoom0 = zoom;
+  }
+}, { passive: false });
+
+bc.addEventListener('touchmove', e => {
+  e.preventDefault();
+  if (e.touches.length === 1 && isDrag) {
+    az = az0 + (e.touches[0].clientX - dragX0) * 0.0065;
+    el = Math.max(0.12, Math.min(1.3, el0 + (e.touches[0].clientY - dragY0) * 0.004));
+    mouseX = e.touches[0].clientX;
+    mouseY = e.touches[0].clientY;
+  } else if (e.touches.length === 2) {
+    const d = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
+    zoom = Math.max(0.35, Math.min(4.0, zoom0 * d / pinchDist0));
+  }
+}, { passive: false });
+
+bc.addEventListener('touchend', e => {
+  if (e.touches.length === 0) {
+    isDrag = false;
+    mouseX = -9999; mouseY = -9999;
+  }
+});
 
 // ── Projection ────────────────────────────────────────────────────────────────
-// col/row in 0-8, wy = world Y (negative = down)
 function proj(col, row, wy = 0) {
   const wx = col - 4, wz = row - 4;
   const cA = Math.cos(az), sA = Math.sin(az);
   const sE = Math.sin(el), cE = Math.cos(el);
+  const T  = TILE * zoom;
   return {
-    x: ox + (wx * cA - wz * sA) * TILE,
-    y: oy + (-(wx * sA + wz * cA) * sE - wy * cE) * TILE
+    x: ox + (wx * cA - wz * sA) * T,
+    y: oy + (-(wx * sA + wz * cA) * sE - wy * cE) * T
   };
 }
 
-function path(pts) {
+function poly(pts) {
   ctx.beginPath();
   ctx.moveTo(pts[0].x, pts[0].y);
   for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
   ctx.closePath();
 }
 
-// Point-in-convex-quad (clockwise winding)
 function inQuad(mx, my, pts) {
   for (let i = 0; i < pts.length; i++) {
     const a = pts[i], b = pts[(i+1) % pts.length];
@@ -176,62 +281,148 @@ function inQuad(mx, my, pts) {
   return true;
 }
 
-// ── Draw ──────────────────────────────────────────────────────────────────────
+// Mid-point of two pts
+function mid(a, b) { return { x: (a.x+b.x)/2, y: (a.y+b.y)/2 }; }
+
+// ── Frame corner diamond ornament ─────────────────────────────────────────────
+function ornament(p) {
+  const s = Math.max(4, TILE * zoom * FP * 0.68);
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  // outer diamond
+  ctx.beginPath();
+  ctx.moveTo(0, -s * .72);
+  ctx.lineTo(s * .42, 0);
+  ctx.lineTo(0,  s * .72);
+  ctx.lineTo(-s * .42, 0);
+  ctx.closePath();
+  const og = ctx.createRadialGradient(0, -s*.2, 0, 0, 0, s*.8);
+  og.addColorStop(0,  '#F0F4FF');
+  og.addColorStop(.4, '#A8B4D0');
+  og.addColorStop(1,  '#303848');
+  ctx.fillStyle = og; ctx.fill();
+  ctx.strokeStyle = 'rgba(200,210,240,.5)'; ctx.lineWidth = .8; ctx.stroke();
+  // inner dot
+  ctx.beginPath();
+  ctx.arc(0, 0, s * .14, 0, Math.PI * 2);
+  ctx.fillStyle = '#E8EEFF'; ctx.fill();
+  ctx.restore();
+}
+
+// ── Drawing ───────────────────────────────────────────────────────────────────
 const FILES = ['a','b','c','d','e','f','g','h'];
 const RANKS = ['8','7','6','5','4','3','2','1'];
 
+// Starting position [row][col] → {symbol, white}
+const BOARD = Array.from({length:8}, () => Array(8).fill(null));
+const back  = ['♜','♞','♝','♛','♚','♝','♞','♜'];
+const bPawn = ['♟','♟','♟','♟','♟','♟','♟','♟'];
+const wPawn = ['♙','♙','♙','♙','♙','♙','♙','♙'];
+const front = ['♖','♘','♗','♕','♔','♗','♘','♖'];
+for (let c=0;c<8;c++) {
+  BOARD[0][c] = {sym: back[c],  white: false};
+  BOARD[1][c] = {sym: bPawn[c], white: false};
+  BOARD[6][c] = {sym: wPawn[c], white: true};
+  BOARD[7][c] = {sym: front[c], white: true};
+}
+
 function drawScene(ts) {
   const t = ts / 1000;
-  const float = Math.sin(t * .65) * 7;
+  const float = Math.sin(t * .6) * 6;
 
   ctx.clearRect(0, 0, bc.width, bc.height);
-
   ox = bc.width  / 2;
   oy = bc.height / 2 + float;
 
-  // Under-glow
-  const glowY = oy + Math.sin(el) * 4 * TILE + 28;
-  const g0 = ctx.createRadialGradient(ox, glowY, 4, ox, glowY, TILE * 6.5);
-  g0.addColorStop(0,   'rgba(110,40,210,.55)');
-  g0.addColorStop(.35, 'rgba(70,20,150,.18)');
-  g0.addColorStop(1,   'rgba(0,0,0,0)');
-  ctx.fillStyle = g0; ctx.fillRect(0,0,bc.width,bc.height);
-
   const sA = Math.sin(az), cA = Math.cos(az);
+  const T  = TILE * zoom;
 
-  // ── Frame depth faces (drawn first, behind tiles) ─────────────────────────
-  const FP = .30, FD = DEPTH * 1.35;
+  // ── Cast shadow ───────────────────────────────────────────────────────────
+  const shadowY = oy + Math.sin(el) * 5.5 * T + DEPTH * T * 1.1 + 10;
+  ctx.save();
+  ctx.translate(ox, shadowY);
+  ctx.scale(1, 0.22);
+  const sg = ctx.createRadialGradient(0,0,0, 0,0, T * 5.8);
+  sg.addColorStop(0,   'rgba(0,0,0,0.72)');
+  sg.addColorStop(.45, 'rgba(0,0,0,0.30)');
+  sg.addColorStop(1,   'rgba(0,0,0,0)');
+  ctx.fillStyle = sg;
+  ctx.beginPath(); ctx.arc(0, 0, T * 5.8, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+
+  // ── Under-glow ────────────────────────────────────────────────────────────
+  const glowCy = oy + Math.sin(el) * 4.2 * T + 18;
+  const g0 = ctx.createRadialGradient(ox, glowCy, T * .5, ox, glowCy, T * 7.5);
+  g0.addColorStop(0,   'rgba(100,36,210,.60)');
+  g0.addColorStop(.28, 'rgba(70,18,160,.22)');
+  g0.addColorStop(.6,  'rgba(40,8,100,.08)');
+  g0.addColorStop(1,   'rgba(0,0,0,0)');
+  ctx.fillStyle = g0; ctx.fillRect(0, 0, bc.width, bc.height);
+
+  // ── Frame depth faces ─────────────────────────────────────────────────────
+  const FD = DEPTH * 1.40;
   function frameFace(c0,r0,c1,r1) {
-    const a = proj(c0,r0), b = proj(c1,r1);
+    const a  = proj(c0,r0),     b  = proj(c1,r1);
     const ad = proj(c0,r0,-FD), bd = proj(c1,r1,-FD);
-    path([a,b,bd,ad]);
-    const gl = ctx.createLinearGradient(a.x,0,b.x,0);
-    gl.addColorStop(0,'#3A2A0E'); gl.addColorStop(.5,'#5C4218'); gl.addColorStop(1,'#2A1E08');
-    ctx.fillStyle = gl; ctx.fill();
-    ctx.strokeStyle = 'rgba(200,150,40,.3)'; ctx.lineWidth = .7; ctx.stroke();
+    poly([a,b,bd,ad]);
+    const fl = ctx.createLinearGradient(
+      (a.x+b.x)/2, Math.min(a.y,b.y),
+      (a.x+b.x)/2, Math.max(ad.y,bd.y)
+    );
+    fl.addColorStop(0,   '#3A3E54');
+    fl.addColorStop(.35, '#1C1E2A');
+    fl.addColorStop(1,   '#080810');
+    ctx.fillStyle = fl; ctx.fill();
+    ctx.strokeStyle = 'rgba(140,150,190,.20)'; ctx.lineWidth = .6; ctx.stroke();
   }
-  if (cA > 0) frameFace(-FP, 8+FP, 8+FP, 8+FP); // front (row=8)
-  if (sA > 0) frameFace(8+FP,-FP,  8+FP, 8+FP);  // right (col=8)
-  if (cA < 0) frameFace(-FP,-FP,   8+FP,-FP);     // back
-  if (sA < 0) frameFace(-FP,-FP,  -FP,   8+FP);   // left
+  if (cA > 0) frameFace(-FP,8+FP, 8+FP,8+FP);
+  if (sA > 0) frameFace(8+FP,-FP, 8+FP,8+FP);
+  if (cA < 0) frameFace(-FP,-FP,  8+FP,-FP);
+  if (sA < 0) frameFace(-FP,-FP, -FP,8+FP);
 
   // ── Frame top ring ────────────────────────────────────────────────────────
-  const fOuter = [proj(-FP,-FP), proj(8+FP,-FP), proj(8+FP,8+FP), proj(-FP,8+FP)];
-  const fInner = [proj(0,0),     proj(8,0),       proj(8,8),       proj(0,8)      ];
-  const gGold = ctx.createLinearGradient(fOuter[0].x, 0, fOuter[1].x, 0);
-  gGold.addColorStop(0,   '#6B4F1E');
-  gGold.addColorStop(.25, '#C8A84B');
-  gGold.addColorStop(.5,  '#EED070');
-  gGold.addColorStop(.75, '#C8A84B');
-  gGold.addColorStop(1,   '#6B4F1E');
+  const fO = [proj(-FP,-FP), proj(8+FP,-FP), proj(8+FP,8+FP), proj(-FP,8+FP)];
+  const fI = [proj(0,0),     proj(8,0),      proj(8,8),        proj(0,8)     ];
+  const xL = Math.min(...fO.map(p=>p.x)), xR = Math.max(...fO.map(p=>p.x));
+  const gGold = ctx.createLinearGradient(xL, 0, xR, 0);
+  gGold.addColorStop(0,    '#2A2C38');
+  gGold.addColorStop(.12,  '#7880A0');
+  gGold.addColorStop(.28,  '#A8B0CC');
+  gGold.addColorStop(.42,  '#D0D8F0');
+  gGold.addColorStop(.50,  '#EEF2FF');
+  gGold.addColorStop(.58,  '#D0D8F0');
+  gGold.addColorStop(.72,  '#A8B0CC');
+  gGold.addColorStop(.88,  '#7880A0');
+  gGold.addColorStop(1,    '#2A2C38');
   for (let i = 0; i < 4; i++) {
     const ni = (i+1)%4;
-    path([fOuter[i], fOuter[ni], fInner[ni], fInner[i]]);
+    poly([fO[i], fO[ni], fI[ni], fI[i]]);
     ctx.fillStyle = gGold; ctx.fill();
-    ctx.strokeStyle = 'rgba(240,200,60,.65)'; ctx.lineWidth = 1; ctx.stroke();
   }
+  // Frame inner edge highlight
+  poly(fI);
+  ctx.strokeStyle = 'rgba(220,230,255,.60)'; ctx.lineWidth = 1.2; ctx.stroke();
+  // Frame outer edge
+  poly(fO);
+  ctx.strokeStyle = 'rgba(40,44,70,.90)'; ctx.lineWidth = 1.0; ctx.stroke();
 
-  // ── Sort tiles back → front ───────────────────────────────────────────────
+  // ── Board slab sides (one solid face per visible board edge) ─────────────
+  function slabFace(pts) {
+    poly(pts);
+    const ys = pts.map(p => p.y);
+    const sg = ctx.createLinearGradient(0, Math.min(...ys), 0, Math.max(...ys));
+    sg.addColorStop(0,   '#2C2848');
+    sg.addColorStop(.45, '#16122A');
+    sg.addColorStop(1,   '#05030E');
+    ctx.fillStyle = sg; ctx.fill();
+    ctx.strokeStyle = 'rgba(160,150,200,.18)'; ctx.lineWidth = .5; ctx.stroke();
+  }
+  if (sA > 0) slabFace([proj(8,0,0), proj(8,8,0), proj(8,8,-DEPTH), proj(8,0,-DEPTH)]);
+  if (sA < 0) slabFace([proj(0,8,0), proj(0,0,0), proj(0,0,-DEPTH), proj(0,8,-DEPTH)]);
+  if (cA > 0) slabFace([proj(8,8,0), proj(0,8,0), proj(0,8,-DEPTH), proj(8,8,-DEPTH)]);
+  if (cA < 0) slabFace([proj(0,0,0), proj(8,0,0), proj(8,0,-DEPTH), proj(0,0,-DEPTH)]);
+
+  // ── Sort tiles ────────────────────────────────────────────────────────────
   const tiles = [];
   for (let r=0;r<8;r++) for (let c=0;c<8;c++) tiles.push({r,c});
   tiles.sort((a,b) =>
@@ -239,113 +430,190 @@ function drawScene(ts) {
   );
 
   // ── Tiles ─────────────────────────────────────────────────────────────────
-  let hoverR = -1, hoverC = -1;
-
   tiles.forEach(({r,c}) => {
-    const isLight = (r+c) % 2 === 0;
+    const isL = (r+c) % 2 === 0;
 
     const p00 = proj(c,   r  );
     const p10 = proj(c+1, r  );
     const p11 = proj(c+1, r+1);
     const p01 = proj(c,   r+1);
-    const top = [p00, p10, p11, p01];
+    const top  = [p00, p10, p11, p01];
+    const hov  = inQuad(mouseX, mouseY, top);
 
-    // Hover (ignore float in detection — float is baked into proj via oy)
-    const hov = inQuad(mouseX, mouseY, top);
-    if (hov) { hoverR = r; hoverC = c; }
-
-    // Side faces (border tiles only)
-    // Right face (col+1 edge) — visible when sA > 0, tile at c=7
-    if (sA > 0 && c === 7) {
-      const p10d = proj(c+1, r,   -DEPTH);
-      const p11d = proj(c+1, r+1, -DEPTH);
-      path([p10, p11, p11d, p10d]);
-      ctx.fillStyle = isLight ? '#7060B2' : '#0E0828';
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(200,168,75,.18)'; ctx.lineWidth = .5; ctx.stroke();
-    }
-    // Left face (col edge) — visible when sA < 0, tile at c=0
-    if (sA < 0 && c === 0) {
-      const p00d = proj(c, r,   -DEPTH);
-      const p01d = proj(c, r+1, -DEPTH);
-      path([p00, p01, p01d, p00d]);
-      ctx.fillStyle = isLight ? '#7060B2' : '#0E0828';
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(200,168,75,.15)'; ctx.lineWidth = .5; ctx.stroke();
-    }
-    // Front face (row+1 edge) — visible when cA > 0, tile at r=7
-    if (cA > 0 && r === 7) {
-      const p01d = proj(c,   r+1, -DEPTH);
-      const p11d = proj(c+1, r+1, -DEPTH);
-      path([p01, p11, p11d, p01d]);
-      ctx.fillStyle = isLight ? '#5A4A98' : '#090618';
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(200,168,75,.12)'; ctx.lineWidth = .5; ctx.stroke();
-    }
-    // Back face (row edge) — visible when cA < 0, tile at r=0
-    if (cA < 0 && r === 0) {
-      const p00d = proj(c,   r, -DEPTH);
-      const p10d = proj(c+1, r, -DEPTH);
-      path([p00, p10, p10d, p00d]);
-      ctx.fillStyle = isLight ? '#5A4A98' : '#090618';
-      ctx.fill();
+    // Depth faces — border tiles only, with gradient shading
+    function depthFace(pa, pb, colL, colD) {
+      const pad = proj(pa.col, pa.row, -DEPTH);
+      const pbd = proj(pb.col, pb.row, -DEPTH);
+      const pts = [
+        proj(pa.col,pa.row), proj(pb.col,pb.row), pbd, pad
+      ];
+      poly(pts);
+      const dfg = ctx.createLinearGradient(
+        (pts[0].x+pts[1].x)/2, Math.min(pts[0].y,pts[1].y),
+        (pts[0].x+pts[1].x)/2, Math.max(pts[2].y,pts[3].y)
+      );
+      dfg.addColorStop(0,   colL);
+      dfg.addColorStop(.5,  colD);
+      dfg.addColorStop(1,   '#020108');
+      ctx.fillStyle = dfg; ctx.fill();
+      ctx.strokeStyle = 'rgba(200,168,75,.10)'; ctx.lineWidth = .4; ctx.stroke();
     }
 
-    // Top face fill
-    path(top);
+
+    // ── Top face: 3-layer rendering ─────────────────────────────────────────
+
+    // Layer 1 — base
+    poly(top);
     ctx.fillStyle = hov
-      ? (isLight ? '#DDD2FF' : '#382490')
-      : (isLight ? '#BFB3E5' : '#261660');
+      ? (isL ? '#D8CEFF' : '#3A2898')
+      : (isL ? '#C2B6E4' : '#140838');
     ctx.fill();
 
-    // Specular highlight
-    const gSpec = ctx.createLinearGradient(p00.x, p00.y, p11.x, p11.y);
-    if (isLight) {
-      gSpec.addColorStop(0, 'rgba(255,255,255,.22)');
-      gSpec.addColorStop(1, 'rgba(0,0,0,.04)');
+    // Layer 2 — directional gradient (light from top-left)
+    poly(top);
+    const dg = ctx.createLinearGradient(p00.x, p00.y, p11.x, p11.y);
+    if (isL) {
+      dg.addColorStop(0,  'rgba(255,255,255,.30)');
+      dg.addColorStop(.5, 'rgba(255,255,255,.06)');
+      dg.addColorStop(1,  'rgba(20,10,60,.10)');
     } else {
-      gSpec.addColorStop(0, 'rgba(140,80,255,.14)');
-      gSpec.addColorStop(1, 'rgba(0,0,0,0)');
+      dg.addColorStop(0,  'rgba(100,60,200,.18)');
+      dg.addColorStop(.5, 'rgba(60,30,130,.06)');
+      dg.addColorStop(1,  'rgba(0,0,0,.22)');
     }
-    path(top); ctx.fillStyle = gSpec; ctx.fill();
+    ctx.fillStyle = dg; ctx.fill();
 
-    // Hover glow
+    // Layer 3 — specular hotspot (near p00, top-left corner)
+    const specCx = p00.x * .68 + p10.x * .18 + p01.x * .14;
+    const specCy = p00.y * .68 + p10.y * .18 + p01.y * .14;
+    const specR  = T * (isL ? .55 : .40);
+    poly(top);
+    ctx.save(); ctx.clip();
+    const sg2 = ctx.createRadialGradient(specCx, specCy, 0, specCx, specCy, specR);
+    if (isL) {
+      sg2.addColorStop(0,  'rgba(255,255,255,.48)');
+      sg2.addColorStop(.4, 'rgba(255,255,255,.12)');
+      sg2.addColorStop(1,  'rgba(0,0,0,0)');
+    } else {
+      sg2.addColorStop(0,  'rgba(150,90,255,.22)');
+      sg2.addColorStop(.5, 'rgba(100,50,200,.06)');
+      sg2.addColorStop(1,  'rgba(0,0,0,0)');
+    }
+    ctx.fillStyle = sg2;
+    ctx.fillRect(
+      Math.min(p00.x,p10.x,p11.x,p01.x)-2,
+      Math.min(p00.y,p10.y,p11.y,p01.y)-2,
+      T*2+4, T*2+4
+    );
+    ctx.restore();
+
+    // Hover rim glow
     if (hov) {
-      path(top);
+      poly(top);
+      ctx.save(); ctx.clip();
       const hg = ctx.createRadialGradient(
         (p00.x+p11.x)/2, (p00.y+p11.y)/2, 0,
-        (p00.x+p11.x)/2, (p00.y+p11.y)/2, TILE
+        (p00.x+p11.x)/2, (p00.y+p11.y)/2, T
       );
-      hg.addColorStop(0, 'rgba(220,180,255,.22)');
+      hg.addColorStop(0, 'rgba(230,200,255,.28)');
       hg.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = hg; ctx.fill();
+      ctx.fillStyle = hg;
+      ctx.fillRect(
+        Math.min(p00.x,p10.x,p11.x,p01.x)-2,
+        Math.min(p00.y,p10.y,p11.y,p01.y)-2,
+        T*2+4, T*2+4
+      );
+      ctx.restore();
     }
 
     // Top face border
-    path(top);
-    ctx.strokeStyle = hov ? 'rgba(230,200,80,.95)' : 'rgba(200,168,75,.28)';
-    ctx.lineWidth   = hov ? 1.8 : 0.55;
+    poly(top);
+    ctx.strokeStyle = hov ? 'rgba(240,210,80,1.0)' : 'rgba(200,168,75,.22)';
+    ctx.lineWidth   = hov ? 2.0 : 0.5;
     ctx.stroke();
 
-    // Coordinate labels
-    const fs = Math.max(9, Math.round(TILE * .21));
-    ctx.font = `600 ${fs}px 'Courier New', monospace`;
-    ctx.fillStyle = 'rgba(200,168,75,.72)';
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    if (r === 7) {
-      const mx = (p01.x+p11.x)/2, my = (p01.y+p11.y)/2;
-      ctx.fillText(FILES[c], mx, my - fs*.25);
-    }
-    if (c === 0) {
-      const mx = (p00.x+p01.x)/2, my = (p00.y+p01.y)/2;
-      ctx.fillText(RANKS[r], mx + fs*.35, my);
-    }
   });
+
+  // ── Pieces (drawn after ALL tiles — separate pass, back→front) ───────────
+  tiles.forEach(({r, c}) => {
+    const piece = BOARD[r][c];
+    if (!piece) return;
+
+    const base = proj(c+.5, r+.5, 0);
+    // Screen-space lift: always visible regardless of elevation angle
+    const lift = Math.max(T * 0.28, 16);
+    const pp   = { x: base.x, y: base.y - lift };
+    const pSz  = Math.max(14, T * 0.80);
+
+    ctx.save();
+    ctx.font = `${pSz}px serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    // Shadow on tile surface
+    ctx.globalAlpha = .25;
+    ctx.filter = 'blur(2px)';
+    ctx.fillStyle = '#000';
+    ctx.fillText(piece.sym, base.x + T*.05, base.y + T*.05);
+    ctx.filter = 'none';
+    ctx.globalAlpha = 1;
+
+    if (piece.white) {
+      ctx.strokeStyle = '#1A0A40';
+      ctx.lineWidth = pSz * .12;
+      ctx.strokeText(piece.sym, pp.x, pp.y);
+      ctx.shadowColor = 'rgba(255,255,255,.9)';
+      ctx.shadowBlur  = 12;
+      ctx.fillStyle   = '#FFFFFF';
+      ctx.fillText(piece.sym, pp.x, pp.y);
+      ctx.shadowBlur  = 0;
+      ctx.fillStyle   = '#EEE8FF';
+      ctx.fillText(piece.sym, pp.x, pp.y);
+    } else {
+      ctx.strokeStyle = '#3A1800';
+      ctx.lineWidth = pSz * .12;
+      ctx.strokeText(piece.sym, pp.x, pp.y);
+      ctx.shadowColor = 'rgba(255,180,0,.8)';
+      ctx.shadowBlur  = 12;
+      ctx.fillStyle   = '#F0A020';
+      ctx.fillText(piece.sym, pp.x, pp.y);
+      ctx.shadowBlur  = 0;
+      ctx.fillStyle   = '#FFD060';
+      ctx.fillText(piece.sym, pp.x, pp.y);
+    }
+    ctx.restore();
+  });
+
+  // ── Corner ornaments ──────────────────────────────────────────────────────
+  ornament(proj(-FP,   -FP  ));
+  ornament(proj(8+FP,  -FP  ));
+  ornament(proj(8+FP,  8+FP ));
+  ornament(proj(-FP,   8+FP ));
+
+  // ── Coordinate labels (engraved on frame) ─────────────────────────────────
+  const fs = Math.max(8, Math.round(T * .20));
+  ctx.font = `700 ${fs}px 'Courier New', monospace`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const LO = FP * .48;
+
+  // Files a–h bottom frame
+  for (let c = 0; c < 8; c++) {
+    const lp = proj(c + .5, 8 + LO);
+    ctx.fillStyle = 'rgba(200,210,240,.80)';
+    ctx.fillText(FILES[c], lp.x, lp.y);
+  }
+  // Ranks 8–1 left frame
+  for (let r = 0; r < 8; r++) {
+    const lp = proj(-LO, r + .5);
+    ctx.fillStyle = 'rgba(200,210,240,.80)';
+    ctx.fillText(RANKS[r], lp.x, lp.y);
+  }
 
   requestAnimationFrame(drawScene);
 }
 
 requestAnimationFrame(drawScene);
 </script>
+  <div id="ac-toast">⚠️ Access Denied: Inspection is prohibited!</div>
 </body>
 </html>

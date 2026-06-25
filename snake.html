@@ -22,8 +22,8 @@
       align-items: center;
       justify-content: center;
       height: 100vh;
-      gap: 8px;
-      padding: 48px 10px 8px;
+      gap: 6px;
+      padding: 46px 10px 6px;
     }
 
     /* ── Side pillars ── */
@@ -90,15 +90,28 @@
       z-index: 1600;
       backdrop-filter: blur(10px);
       transition: background 0.18s, color 0.18s, border-color 0.18s, box-shadow 0.18s, transform 0.12s;
-      display: none;
+      display: block;
     }
-    #snake-admin-btn.visible { display: block; }
     #snake-admin-btn:hover {
       background: rgba(100,50,220,0.28);
       color: #c0a0ff;
       border-color: rgba(160,100,255,0.60);
       box-shadow: 0 0 14px rgba(130,70,255,0.32);
       transform: translateY(-1px);
+    }
+
+    /* ── Superadmin hint text ── */
+    #snake-super-hint {
+      position: fixed;
+      top: 17px;
+      right: calc(var(--pillar-w) + 120px);
+      font-size: 0.62rem;
+      font-style: italic;
+      letter-spacing: 0.05em;
+      color: #6a4fa0;
+      user-select: none;
+      pointer-events: none;
+      z-index: 1500;
     }
 
     /* ── Admin sidebar ── */
@@ -401,6 +414,48 @@
     .diff-opt.active-normal { background: rgba(200,200,80,0.20); border-color: #cccc44; color: #ffff66; box-shadow: 0 0 12px rgba(200,200,80,0.22); }
     .diff-opt.active-hard   { background: rgba(220,60,40,0.25);  border-color: #cc3322; color: #ff6655; box-shadow: 0 0 12px rgba(220,60,40,0.28); }
     .diff-opt:not(.active-easy):not(.active-normal):not(.active-hard) { opacity: 0.42; }
+    .food-opt { background: rgba(255,255,255,0.04); border: 1.5px solid rgba(255,255,255,0.18); color: rgba(255,255,255,0.6); border-radius: 8px; padding: 6px 14px; cursor: pointer; font-family: inherit; font-size: 0.78rem; letter-spacing: 0.06em; transition: all 0.18s; }
+    .food-opt:hover { transform: translateY(-2px); }
+    .food-opt.active-easy { background: rgba(80,200,100,0.20); border-color: #44cc66; color: #66ff88; box-shadow: 0 0 12px rgba(80,200,100,0.25); }
+    .food-opt:not(.active-easy) { opacity: 0.42; }
+
+    /* ── Feature toggles ── */
+    .feat-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+    .feat-toggle {
+      display: flex; align-items: center; gap: 6px;
+      padding: 8px 14px; border-radius: 12px; cursor: pointer;
+      font-size: 0.78rem; font-weight: 700; letter-spacing: 0.04em;
+      border: 1.5px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.04); color: #5a4880;
+      transition: all 0.18s; user-select: none;
+    }
+    .feat-toggle .ft-icon { font-size: 1rem; line-height: 1; }
+    .feat-toggle .ft-status { font-size: 0.58rem; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.7; }
+    .feat-toggle.on {
+      background: rgba(120,40,220,0.20); border-color: rgba(160,80,255,0.55);
+      color: #cc88ff; box-shadow: 0 0 10px rgba(140,60,255,0.22);
+    }
+    .feat-toggle.on .ft-status { color: #88ee88; }
+    .feat-toggle:not(.on) .ft-status { color: #664444; }
+
+    /* ── Skin picker ── */
+    .skin-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+    .skin-swatch {
+      width: 30px; height: 30px; border-radius: 50%; cursor: pointer;
+      border: 2.5px solid rgba(255,255,255,0.12);
+      transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+      position: relative;
+    }
+    .skin-swatch:hover { transform: scale(1.18); }
+    .skin-swatch.active {
+      border-color: #fff; transform: scale(1.22);
+      box-shadow: 0 0 14px rgba(255,255,255,0.55);
+    }
+    .skin-swatch.active::after {
+      content: '✓'; position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.68rem; font-weight: 900; color: rgba(255,255,255,0.9);
+    }
 
     #start-btn, #retry-btn {
       font-family: 'Orbitron', sans-serif;
@@ -448,6 +503,70 @@
     .go-hi   { color: #ffd700; font-weight: 700; text-shadow: 0 0 14px rgba(255,215,0,0.5); }
     .go-newhi { color: #ffd700; font-weight: 900; font-size: 1.1rem; text-shadow: 0 0 20px rgba(255,215,0,0.7); display: none; }
     .go-btns { display: flex; gap: 12px; margin-top: 6px; flex-wrap: wrap; justify-content: center; }
+    #settings-btn {
+      font-family: 'Orbitron', sans-serif;
+      background: rgba(40,20,90,0.35);
+      color: #b090e8;
+      border: 1.5px solid rgba(140,80,255,0.45);
+      padding: 13px 28px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      border-radius: 14px;
+      cursor: pointer;
+      letter-spacing: 0.07em;
+      transition: background 0.18s, box-shadow 0.18s, transform 0.15s;
+      box-shadow: 0 0 10px rgba(120,60,220,0.18);
+    }
+    #settings-btn:hover {
+      background: rgba(80,40,180,0.45);
+      box-shadow: 0 0 22px rgba(140,80,255,0.42);
+      transform: translateY(-2px);
+    }
+
+    /* Settings-specific diff/feat/skin — reuse visuals */
+    .diff-opt-s {
+      padding: 9px 20px; border-radius: 12px; font-size: 0.84rem; font-weight: 700;
+      border: 1.5px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.05);
+      color: #7060a0; cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s, background 0.15s, border-color 0.15s, color 0.15s, opacity 0.15s;
+      letter-spacing: 0.04em; user-select: none;
+    }
+    .diff-opt-s:hover { transform: translateY(-2px); }
+    .diff-opt-s.active-s-easy   { background: rgba(80,200,100,0.20); border-color: #44cc66; color: #66ff88; box-shadow: 0 0 12px rgba(80,200,100,0.25); }
+    .diff-opt-s.active-s-normal { background: rgba(200,200,80,0.20); border-color: #cccc44; color: #ffff66; box-shadow: 0 0 12px rgba(200,200,80,0.22); }
+    .diff-opt-s.active-s-hard   { background: rgba(220,60,40,0.25);  border-color: #cc3322; color: #ff6655; box-shadow: 0 0 12px rgba(220,60,40,0.28); }
+    .diff-opt-s:not(.active-s-easy):not(.active-s-normal):not(.active-s-hard) { opacity: 0.42; }
+
+    .feat-toggle-s {
+      display: flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 12px;
+      cursor: pointer; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.04em;
+      border: 1.5px solid rgba(255,255,255,0.10); background: rgba(255,255,255,0.04);
+      color: #5a4880; transition: all 0.18s; user-select: none;
+    }
+    .feat-toggle-s.on { background: rgba(120,40,220,0.20); border-color: rgba(160,80,255,0.55); color: #cc88ff; box-shadow: 0 0 10px rgba(140,60,255,0.22); }
+    .feat-toggle-s.on .ft-status { color: #88ee88; }
+    .feat-toggle-s:not(.on) .ft-status { color: #664444; }
+
+    .skin-swatch-s {
+      width: 30px; height: 30px; border-radius: 50%; cursor: pointer;
+      border: 2.5px solid rgba(255,255,255,0.12);
+      transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s; position: relative;
+    }
+    .skin-swatch-s:hover { transform: scale(1.18); }
+    .skin-swatch-s.active { border-color: #fff; transform: scale(1.22); box-shadow: 0 0 14px rgba(255,255,255,0.55); }
+    .skin-swatch-s.active::after { content:'✓'; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:0.68rem; font-weight:900; color:rgba(255,255,255,0.9); }
+
+    #settings-play-btn {
+      font-family: 'Orbitron', sans-serif;
+      background: linear-gradient(135deg, #ffe033 0%, #ffaa00 60%, #ff8800 100%);
+      color: #1a0a2e; border: 2px solid rgba(255,220,0,0.65);
+      padding: 13px 48px; font-size: 0.95rem; font-weight: 900; border-radius: 14px;
+      cursor: pointer; letter-spacing: 0.09em;
+      transition: transform 0.18s, box-shadow 0.18s;
+      box-shadow: 0 0 22px rgba(255,200,0,0.38), inset 0 1px 0 rgba(255,255,255,0.35);
+    }
+    #settings-play-btn:hover { transform: translateY(-3px) scale(1.04); box-shadow: 0 0 36px rgba(255,200,0,0.70); }
+
     #hub-from-go {
       font-family: 'Orbitron', sans-serif;
       background: rgba(80,40,180,0.22);
@@ -468,12 +587,162 @@
       box-shadow: 0 0 24px rgba(140,80,255,0.45);
       transform: translateY(-2px);
     }
+
+    /* ── Pause overlay ── */
+    #pause-overlay {
+      display: none;
+      position: fixed; inset: 0; z-index: 800;
+      background: rgba(0,0,0,0.55);
+      align-items: center; justify-content: center;
+      backdrop-filter: blur(3px);
+    }
+    #pause-overlay.visible { display: flex; }
+    .pause-card {
+      font-family: 'Orbitron', sans-serif;
+      font-size: clamp(1.8rem, 5vw, 2.8rem);
+      font-weight: 900;
+      color: #c880ff;
+      letter-spacing: 0.18em;
+      text-shadow: 0 0 30px rgba(180,80,255,0.8), 0 0 60px rgba(120,0,220,0.5);
+      animation: pausePulse 1.4s ease-in-out infinite;
+    }
+    @keyframes pausePulse {
+      0%,100% { opacity: 1; transform: scale(1); }
+      50%      { opacity: 0.7; transform: scale(0.97); }
+    }
+    .pause-hint {
+      position: absolute;
+      bottom: 42%;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.65rem;
+      color: rgba(160,100,255,0.55);
+      letter-spacing: 0.14em;
+    }
+
+    /* ── D-pad touch controls ── */
+    #dpad {
+      display: none;
+      position: fixed;
+      bottom: 20px;
+      left: 14px;
+      z-index: 700;
+      grid-template-columns: 52px 52px 52px;
+      grid-template-rows: 52px 52px 52px;
+      gap: 4px;
+      user-select: none;
+      touch-action: none;
+      opacity: 0.45;
+      transition: opacity 0.18s;
+    }
+    #dpad.touching { opacity: 1; }
+    @media (pointer: coarse) { #dpad { display: grid; } }
+    .dp-btn {
+      background: rgba(80,20,160,0.30);
+      border: 1.5px solid rgba(160,80,255,0.40);
+      border-radius: 14px;
+      color: rgba(200,150,255,0.95);
+      font-size: 1.25rem;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      backdrop-filter: blur(10px);
+      transition: background 0.08s, transform 0.08s, box-shadow 0.08s;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: none;
+    }
+    .dp-btn:active, .dp-btn.pressed {
+      background: rgba(160,80,255,0.50);
+      transform: scale(0.88);
+      box-shadow: 0 0 12px rgba(160,80,255,0.60);
+    }
+    .dp-empty { visibility: hidden; }
+
+    /* ── Snake pause button (mobile) ── */
+    #snake-pause-btn {
+      display: none;
+      position: fixed;
+      bottom: 40px;
+      right: 14px;
+      z-index: 700;
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: rgba(40,0,100,0.30);
+      border: 2px solid rgba(140,60,255,0.45);
+      color: rgba(200,150,255,0.90);
+      font-size: 1.5rem;
+      cursor: pointer;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(10px);
+      -webkit-tap-highlight-color: transparent;
+      touch-action: none;
+      opacity: 0.45;
+      transition: opacity 0.18s, transform 0.10s;
+      user-select: none;
+    }
+    @media (pointer: coarse) { #snake-pause-btn { display: flex; } }
+    #snake-pause-btn:active, #snake-pause-btn.touching {
+      opacity: 1; transform: scale(0.90);
+      box-shadow: 0 0 14px rgba(160,80,255,0.55);
+    }
+
+    /* ── Anti-cheat toast ───────────────────────────────────────────────── */
+    #ac-toast {
+      display: none;
+      position: fixed;
+      top: 18px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-120%);
+      z-index: 99999;
+      padding: 11px 22px;
+      border-radius: 10px;
+      background: rgba(20, 0, 0, 0.92);
+      border: 1.5px solid #ff2222;
+      color: #ff5555;
+      font-family: monospace, sans-serif;
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      white-space: nowrap;
+      box-shadow: 0 0 24px rgba(255, 0, 0, 0.55), 0 4px 20px rgba(0,0,0,0.6);
+      pointer-events: none;
+      transition: transform 0.22s cubic-bezier(.22,1,.36,1), opacity 0.22s;
+      opacity: 0;
+    }
+    #ac-toast.show { display: block; transform: translateX(-50%) translateY(0); opacity: 1; }
+    #ac-toast.hide { transform: translateX(-50%) translateY(-120%); opacity: 0; }
   </style>
+  <script>
+    let _acTimer = null;
+    function showAcToast() {
+      const el = document.getElementById('ac-toast');
+      if (!el) return;
+      clearTimeout(_acTimer);
+      el.classList.remove('hide');
+      el.style.display = 'block';
+      requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('show')));
+      _acTimer = setTimeout(() => {
+        el.classList.add('hide');
+        el.classList.remove('show');
+        setTimeout(() => { el.style.display = 'none'; el.classList.remove('hide'); }, 250);
+      }, 2000);
+    }
+    document.addEventListener('contextmenu', e => { e.preventDefault(); showAcToast(); });
+    document.addEventListener('keydown', e => {
+      const ctrl = e.ctrlKey, shift = e.shiftKey, c = e.key.toUpperCase();
+      if (
+        e.key === 'F12' ||
+        (ctrl && shift && (c === 'I' || c === 'J' || c === 'C')) ||
+        (ctrl && c === 'U')
+      ) { e.preventDefault(); e.stopPropagation(); showAcToast(); }
+    }, true);
+  </script>
 </head>
 <body>
 
   <a href="index.html" id="hub-btn">🎮 Hub</a>
   <button id="snake-admin-btn">⚙ Admin</button>
+  <div id="snake-super-hint">🔧 Enter the correct code</div>
 
   <!-- Admin sidebar -->
   <div id="snake-admin-sidebar">
@@ -487,10 +756,21 @@
     <hr class="sa-sep">
     <button class="sa-btn" id="sa-addfood">🟡 Spawn Food +5</button>
     <button class="sa-btn" id="sa-addscore">💰 +100 Score</button>
+    <button class="sa-btn" id="sa-multiplier">×2 Score Multiplier</button>
+    <hr class="sa-sep">
+    <button class="sa-btn" id="sa-trimsnake">✂️ Trim Snake → 3</button>
+    <button class="sa-btn" id="sa-forcspecial">💎 Force Special Food</button>
+    <button class="sa-btn" id="sa-forcbomb">💣 Spawn Bomb</button>
+    <button class="sa-btn" id="sa-softreset">🔄 Soft Reset</button>
+    <hr class="sa-sep">
+    <button class="sa-btn active" id="sa-obstacles">🧱 Obstacles ON</button>
+    <button class="sa-btn" id="sa-rerollmap">🗺 Reroll Map</button>
     <hr class="sa-sep">
     <button class="sa-btn" id="sa-resethi">🗑 Reset Hi Score</button>
     <hr class="sa-sep">
     <button class="sa-btn" id="sa-open-super" style="border-color:rgba(157,0,255,0.45);color:#cc88ff;background:rgba(80,0,160,0.18);">🔧 Superadmin Panel</button>
+    <hr class="sa-sep">
+    <button class="sa-btn" id="sa-logout" style="border-color:rgba(255,60,60,0.45);color:#ff8888;background:rgba(120,0,0,0.18);">🚪 Log Out</button>
   </div>
 
   <!-- Superadmin overlay -->
@@ -570,6 +850,7 @@
             </div>
           </div>
           <button class="sa-action sa-red" id="sa-revoke-session" style="margin-top:4px;">🚪 Revoke Admin Session</button>
+          <button class="sa-action" id="sa-exit-super" style="margin-top:4px;background:linear-gradient(135deg,rgba(80,0,120,0.55),rgba(50,0,80,0.45));border:1px solid rgba(180,80,255,0.45);color:#cc88ff;">🔒 Exit Superadmin Session</button>
         </div>
 
       </div>
@@ -601,12 +882,36 @@
     <canvas id="game-canvas"></canvas>
   </div>
 
-  <div id="hint">WASD / Arrow keys to move &nbsp;·&nbsp; Eat 🟡 gold for +10 pts &nbsp;·&nbsp; Eat ✦ cyan for +50 pts</div>
+  <div id="hint">WASD / Arrows &nbsp;·&nbsp; Space = pause &nbsp;·&nbsp; 🟡 +10 &nbsp;·&nbsp; ✦ +50</div>
+
+  <!-- Pause overlay -->
+  <div id="pause-overlay">
+    <div class="pause-card">⏸ PAUSED</div>
+    <div class="pause-hint">SPACE / ESC to resume</div>
+  </div>
+
+  <!-- D-pad -->
+  <div id="dpad">
+    <div class="dp-empty"></div>
+    <button class="dp-btn" id="dp-up">▲</button>
+    <div class="dp-empty"></div>
+    <button class="dp-btn" id="dp-left">◀</button>
+    <div class="dp-empty"></div>
+    <button class="dp-btn" id="dp-right">▶</button>
+    <div class="dp-empty"></div>
+    <button class="dp-btn" id="dp-down">▼</button>
+    <div class="dp-empty"></div>
+  </div>
+
+  <!-- Mobile pause button -->
+  <button id="snake-pause-btn">⏸</button>
 
   <!-- Start overlay -->
   <div class="overlay visible" id="start-overlay">
     <div class="menu-card">
       <div class="menu-title">🐍 NEON SNAKE</div>
+
+      <!-- Difficulty -->
       <div>
         <div class="menu-label">Difficulty</div>
         <div class="diff-row">
@@ -615,6 +920,67 @@
           <button class="diff-opt" data-diff="hard">Hard</button>
         </div>
       </div>
+
+      <!-- Features -->
+      <div>
+        <div class="menu-label">Features</div>
+        <div class="feat-row">
+          <button class="feat-toggle on" id="feat-obstacles" data-feat="obstacles">
+            <span class="ft-icon">🧱</span>
+            <div><div>Blocks</div><div class="ft-status">ON</div></div>
+          </button>
+          <button class="feat-toggle on" id="feat-portals" data-feat="portals">
+            <span class="ft-icon">🌀</span>
+            <div><div>Portals</div><div class="ft-status">ON</div></div>
+          </button>
+          <button class="feat-toggle on" id="feat-bombs" data-feat="bombs">
+            <span class="ft-icon">💣</span>
+            <div><div>Bombs</div><div class="ft-status">ON</div></div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Skin -->
+      <div>
+        <div class="menu-label">Skin</div>
+        <div class="skin-row">
+          <button class="skin-swatch active" data-skin="cyan"   style="background:linear-gradient(135deg,#aaffff,#0099cc)" title="Cyan"></button>
+          <button class="skin-swatch"        data-skin="green"  style="background:linear-gradient(135deg,#aaffcc,#00aa55)" title="Green"></button>
+          <button class="skin-swatch"        data-skin="orange" style="background:linear-gradient(135deg,#ffcc88,#ee5500)" title="Orange"></button>
+          <button class="skin-swatch"        data-skin="pink"   style="background:linear-gradient(135deg,#ffaaee,#cc1188)" title="Pink"></button>
+          <button class="skin-swatch"        data-skin="gold"   style="background:linear-gradient(135deg,#fff0aa,#cc8800)" title="Gold"></button>
+        </div>
+      </div>
+
+      <!-- More Options -->
+      <div>
+        <div class="menu-label">More Options</div>
+        <div class="feat-row" style="flex-wrap:wrap;">
+          <button class="feat-toggle" id="feat-wallwrap" data-feat2="wallwrap">
+            <span class="ft-icon">🔁</span>
+            <div><div>Wall Wrap</div><div class="ft-status">OFF</div></div>
+          </button>
+          <button class="feat-toggle on" id="feat-grid" data-feat2="grid">
+            <span class="ft-icon">⊞</span>
+            <div><div>Grid</div><div class="ft-status">ON</div></div>
+          </button>
+          <button class="feat-toggle on" id="feat-trail" data-feat2="trail">
+            <span class="ft-icon">✨</span>
+            <div><div>Trail</div><div class="ft-status">ON</div></div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Food Count -->
+      <div>
+        <div class="menu-label">Food on Field</div>
+        <div class="diff-row">
+          <button class="food-opt active-easy" data-foodcount="1">1</button>
+          <button class="food-opt" data-foodcount="2">2</button>
+          <button class="food-opt" data-foodcount="3">3</button>
+        </div>
+      </div>
+
       <button id="start-btn">▶ START</button>
     </div>
   </div>
@@ -628,12 +994,96 @@
       <p class="go-newhi" id="go-newhi">🏆 New High Score!</p>
       <div class="go-btns">
         <button id="retry-btn">↺ Retry</button>
+        <button id="settings-btn">⚙ Settings</button>
         <a href="index.html" id="hub-from-go">🎮 Hub</a>
       </div>
     </div>
   </div>
 
+  <!-- Settings overlay -->
+  <div class="overlay" id="settings-overlay">
+    <div class="menu-card" style="position:relative;">
+      <div style="display:flex;align-items:center;justify-content:space-between;width:100%;gap:24px;">
+        <div class="menu-title" style="font-size:clamp(1.4rem,3.5vw,2rem);">⚙ Settings</div>
+        <button id="settings-close" style="background:rgba(255,255,255,0.06);border:1.5px solid rgba(160,80,255,0.35);color:#a080d0;padding:8px 16px;border-radius:10px;font-size:0.82rem;font-weight:700;cursor:pointer;transition:background 0.15s;">✕ Close</button>
+      </div>
+
+      <!-- Difficulty -->
+      <div>
+        <div class="menu-label">Difficulty</div>
+        <div class="diff-row">
+          <button class="diff-opt-s" data-sdiff="easy">Easy</button>
+          <button class="diff-opt-s active-s-normal" data-sdiff="normal">Normal</button>
+          <button class="diff-opt-s" data-sdiff="hard">Hard</button>
+        </div>
+      </div>
+
+      <!-- Features -->
+      <div>
+        <div class="menu-label">Features</div>
+        <div class="feat-row">
+          <button class="feat-toggle-s on" id="sfeat-obstacles" data-sfeat="obstacles">
+            <span class="ft-icon">🧱</span>
+            <div><div>Blocks</div><div class="ft-status">ON</div></div>
+          </button>
+          <button class="feat-toggle-s on" id="sfeat-portals" data-sfeat="portals">
+            <span class="ft-icon">🌀</span>
+            <div><div>Portals</div><div class="ft-status">ON</div></div>
+          </button>
+          <button class="feat-toggle-s on" id="sfeat-bombs" data-sfeat="bombs">
+            <span class="ft-icon">💣</span>
+            <div><div>Bombs</div><div class="ft-status">ON</div></div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Skin -->
+      <div>
+        <div class="menu-label">Skin</div>
+        <div class="skin-row">
+          <button class="skin-swatch-s" data-sskin="cyan"   style="background:linear-gradient(135deg,#aaffff,#0099cc)" title="Cyan"></button>
+          <button class="skin-swatch-s" data-sskin="green"  style="background:linear-gradient(135deg,#aaffcc,#00aa55)" title="Green"></button>
+          <button class="skin-swatch-s" data-sskin="orange" style="background:linear-gradient(135deg,#ffcc88,#ee5500)" title="Orange"></button>
+          <button class="skin-swatch-s" data-sskin="pink"   style="background:linear-gradient(135deg,#ffaaee,#cc1188)" title="Pink"></button>
+          <button class="skin-swatch-s" data-sskin="gold"   style="background:linear-gradient(135deg,#fff0aa,#cc8800)" title="Gold"></button>
+        </div>
+      </div>
+
+      <!-- Extra options -->
+      <div>
+        <div class="menu-label">More Options</div>
+        <div class="feat-row" style="flex-wrap:wrap;">
+          <button class="feat-toggle-s" id="sopt-wallwrap" data-sopt="wallwrap">
+            <span class="ft-icon">🔁</span>
+            <div><div>Wall Wrap</div><div class="ft-status">OFF</div></div>
+          </button>
+          <button class="feat-toggle-s" id="sopt-grid" data-sopt="grid">
+            <span class="ft-icon">⊞</span>
+            <div><div>Grid</div><div class="ft-status">ON</div></div>
+          </button>
+          <button class="feat-toggle-s" id="sopt-trail" data-sopt="trail">
+            <span class="ft-icon">✨</span>
+            <div><div>Trail</div><div class="ft-status">ON</div></div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Food count -->
+      <div>
+        <div class="menu-label">Food on Field</div>
+        <div class="diff-row">
+          <button class="diff-opt-s active-s-easy" data-sfood="1">1</button>
+          <button class="diff-opt-s" data-sfood="2">2</button>
+          <button class="diff-opt-s" data-sfood="3">3</button>
+        </div>
+      </div>
+
+      <button id="settings-play-btn">▶ Play Again</button>
+    </div>
+  </div>
+
   <script>
+    localStorage.removeItem('kq_super_pw');
     // ── Canvas setup — responsive size ────────────────────────────────────────
     const COLS = 24, ROWS = 24;
     const canvas = document.getElementById('game-canvas');
@@ -642,7 +1092,7 @@
 
     function computeCell() {
       const maxW = window.innerWidth  - (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--pillar-w')) || 72) * 2 - 28;
-      const maxH = window.innerHeight - 170;
+      const maxH = window.innerHeight - 148;
       return Math.floor(Math.min(maxW / COLS, maxH / ROWS, 30));
     }
     let CELL = computeCell();
@@ -662,11 +1112,41 @@
     let hiScore      = Number(localStorage.getItem('nq_snake_hi') || 0);
     document.getElementById('hud-hi').textContent = hiScore;
 
+    // ── Skins ─────────────────────────────────────────────────────────────────
+    const SKINS = {
+      cyan:   { h1:'#aaffff', h2:'#00cccc', glow:'#00ffee',  pupil:'#00ffee',  bodyRgb:(f)=>[Math.round(120+f*80), Math.round(30+f*20),  Math.round(210+f*45)] },
+      green:  { h1:'#aaffcc', h2:'#00bb66', glow:'#00ff88',  pupil:'#00ff88',  bodyRgb:(f)=>[Math.round(30+f*40),  Math.round(170+f*70), Math.round(80+f*40)]  },
+      orange: { h1:'#ffcc88', h2:'#ee6600', glow:'#ff8800',  pupil:'#ffaa00',  bodyRgb:(f)=>[Math.round(200+f*40), Math.round(70+f*50),  Math.round(10+f*10)]  },
+      pink:   { h1:'#ffaaee', h2:'#cc22aa', glow:'#ff44cc',  pupil:'#ff88ee',  bodyRgb:(f)=>[Math.round(180+f*60), Math.round(30+f*20),  Math.round(150+f*40)] },
+      gold:   { h1:'#fff0aa', h2:'#ddaa00', glow:'#ffd700',  pupil:'#ffd700',  bodyRgb:(f)=>[Math.round(160+f*70), Math.round(110+f*50), Math.round(10+f*10)]  },
+    };
+    let selectedSkin = localStorage.getItem('nq_skin') || 'cyan';
+
+    // ── Feature flags (from start-screen) ────────────────────────────────────
+    let featureObstacles = localStorage.getItem('nq_feat_obstacles') !== '0';
+    let featurePortals   = localStorage.getItem('nq_feat_portals')   !== '0';
+    let featureBombs     = localStorage.getItem('nq_feat_bombs')     !== '0';
+
+    let paused = false;
+    let prevSnake = [], lastStepTime = 0, currentInterval = 110;
+
+    // ── Extra settings ────────────────────────────────────────────────────────
+    let wallWrap       = localStorage.getItem('nq_wall_wrap')   === '1';
+    let showGrid       = localStorage.getItem('nq_show_grid')   !== '0';
+    let showTrail      = localStorage.getItem('nq_trail')       !== '0';
+    let multiFoodCount = Math.max(1, Math.min(3, Number(localStorage.getItem('nq_multi_food') || 1)));
+    let extraFoods     = [];
+
     let snake, dir, nextDir, food, specialFood;
     let score, foodEaten, gameRunning, loopTimer;
     let flashFx = 0, gameoverFx = 0;
     let particles = [];
     let scorePops = [];
+    let obstacles  = new Set();
+    let bombFood   = null;
+    let portals    = [];
+    let portalCooldown = 0;
+    let obstaclesEnabled = true;
 
     // ── Difficulty selector ───────────────────────────────────────────────────
     document.querySelectorAll('.diff-opt').forEach(btn => {
@@ -678,6 +1158,219 @@
       });
     });
 
+    // ── Feature toggles ──────────────────────────────────────────────────────
+    (function initFeatureUI() {
+      const feats = { obstacles: featureObstacles, portals: featurePortals, bombs: featureBombs };
+      Object.entries(feats).forEach(([key, val]) => {
+        const btn = document.getElementById('feat-' + key);
+        if (!btn) return;
+        btn.classList.toggle('on', val);
+        btn.querySelector('.ft-status').textContent = val ? 'ON' : 'OFF';
+      });
+
+      document.querySelectorAll('.feat-toggle').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const feat = btn.dataset.feat;
+          const isOn = btn.classList.toggle('on');
+          btn.querySelector('.ft-status').textContent = isOn ? 'ON' : 'OFF';
+          const key = 'nq_feat_' + feat;
+          if (isOn) localStorage.removeItem(key); else localStorage.setItem(key, '0');
+          if (feat === 'obstacles') featureObstacles = isOn;
+          if (feat === 'portals')   featurePortals   = isOn;
+          if (feat === 'bombs')     featureBombs     = isOn;
+        });
+      });
+    })();
+
+    // ── Skin picker ───────────────────────────────────────────────────────────
+    (function initSkinUI() {
+      document.querySelectorAll('.skin-swatch').forEach(btn => {
+        if (btn.dataset.skin === selectedSkin) btn.classList.add('active');
+        else btn.classList.remove('active');
+        btn.addEventListener('click', () => {
+          selectedSkin = btn.dataset.skin;
+          localStorage.setItem('nq_skin', selectedSkin);
+          document.querySelectorAll('.skin-swatch').forEach(b => b.classList.toggle('active', b.dataset.skin === selectedSkin));
+        });
+      });
+    })();
+
+    // ── Start-screen extra options ────────────────────────────────────────────
+    (function initExtraUI() {
+      const opts2 = {
+        wallwrap: [()=>wallWrap,  v=>{wallWrap=v;  v ? localStorage.setItem('nq_wall_wrap','1')  : localStorage.removeItem('nq_wall_wrap');}],
+        grid:     [()=>showGrid,  v=>{showGrid=v;  v ? localStorage.removeItem('nq_show_grid')   : localStorage.setItem('nq_show_grid','0');}],
+        trail:    [()=>showTrail, v=>{showTrail=v; v ? localStorage.removeItem('nq_trail')        : localStorage.setItem('nq_trail','0');}],
+      };
+
+      function syncExtra() {
+        Object.entries(opts2).forEach(([key, [getter]]) => {
+          const btn = document.getElementById('feat-' + key);
+          if (!btn) return;
+          const val = getter();
+          btn.classList.toggle('on', val);
+          btn.querySelector('.ft-status').textContent = val ? 'ON' : 'OFF';
+          // sync settings overlay counterpart
+          const btn2 = document.getElementById('sopt-' + key);
+          if (btn2) { btn2.classList.toggle('on', val); btn2.querySelector('.ft-status').textContent = val ? 'ON' : 'OFF'; }
+        });
+      }
+      syncExtra();
+
+      document.querySelectorAll('[data-feat2]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const key = btn.dataset.feat2;
+          const [getter, setter] = opts2[key];
+          setter(!getter());
+          syncExtra();
+        });
+      });
+
+      // Food count on start screen
+      function syncFoodBtns() {
+        document.querySelectorAll('[data-foodcount]').forEach(b => {
+          const n = Number(b.dataset.foodcount);
+          b.className = 'food-opt' + (n === multiFoodCount ? ' active-easy' : '');
+        });
+        // sync settings overlay
+        document.querySelectorAll('[data-sfood]').forEach(b => {
+          b.className = 'diff-opt-s' + (Number(b.dataset.sfood) === multiFoodCount ? ' active-s-easy' : '');
+        });
+      }
+      syncFoodBtns();
+
+      document.querySelectorAll('[data-foodcount]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          multiFoodCount = Number(btn.dataset.foodcount);
+          localStorage.setItem('nq_multi_food', multiFoodCount);
+          syncFoodBtns();
+        });
+      });
+    })();
+
+    // ── Settings overlay (from Game Over screen) ─────────────────────────────
+    (function initSettingsUI() {
+      // Sync difficulty buttons
+      function syncSDiff() {
+        document.querySelectorAll('.diff-opt-s').forEach(b => {
+          b.className = 'diff-opt-s' + (b.dataset.sdiff === selectedDiff ? ' active-s-' + selectedDiff : '');
+        });
+      }
+      syncSDiff();
+      document.querySelectorAll('.diff-opt-s').forEach(btn => {
+        btn.addEventListener('click', () => {
+          selectedDiff = btn.dataset.sdiff;
+          // Also sync the start-screen buttons
+          document.querySelectorAll('.diff-opt').forEach(b => {
+            b.className = 'diff-opt' + (b.dataset.diff === selectedDiff ? ' active-' + selectedDiff : '');
+          });
+          syncSDiff();
+        });
+      });
+
+      // Sync feature toggles
+      function syncSFeats() {
+        const feats = { obstacles: featureObstacles, portals: featurePortals, bombs: featureBombs };
+        Object.entries(feats).forEach(([key, val]) => {
+          const btn = document.getElementById('sfeat-' + key);
+          if (!btn) return;
+          btn.classList.toggle('on', val);
+          btn.querySelector('.ft-status').textContent = val ? 'ON' : 'OFF';
+        });
+      }
+      syncSFeats();
+      document.querySelectorAll('.feat-toggle-s').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const feat = btn.dataset.sfeat;
+          const isOn = btn.classList.toggle('on');
+          btn.querySelector('.ft-status').textContent = isOn ? 'ON' : 'OFF';
+          const lsKey = 'nq_feat_' + feat;
+          if (isOn) localStorage.removeItem(lsKey); else localStorage.setItem(lsKey, '0');
+          if (feat === 'obstacles') featureObstacles = isOn;
+          if (feat === 'portals')   featurePortals   = isOn;
+          if (feat === 'bombs')     featureBombs     = isOn;
+          // Sync start-screen toggles
+          const mainBtn = document.getElementById('feat-' + feat);
+          if (mainBtn) { mainBtn.classList.toggle('on', isOn); mainBtn.querySelector('.ft-status').textContent = isOn ? 'ON' : 'OFF'; }
+        });
+      });
+
+      // Sync skin swatches
+      function syncSSkins() {
+        document.querySelectorAll('.skin-swatch-s').forEach(b => b.classList.toggle('active', b.dataset.sskin === selectedSkin));
+      }
+      syncSSkins();
+      document.querySelectorAll('.skin-swatch-s').forEach(btn => {
+        btn.addEventListener('click', () => {
+          selectedSkin = btn.dataset.sskin;
+          localStorage.setItem('nq_skin', selectedSkin);
+          syncSSkins();
+          document.querySelectorAll('.skin-swatch').forEach(b => b.classList.toggle('active', b.dataset.skin === selectedSkin));
+        });
+      });
+
+      // Extra options (wall wrap, grid, trail)
+      const extraOpts = { wallwrap: [()=>wallWrap, v=>{wallWrap=v; if(v)localStorage.setItem('nq_wall_wrap','1'); else localStorage.removeItem('nq_wall_wrap');} ],
+                          grid:     [()=>showGrid, v=>{showGrid=v; if(!v)localStorage.setItem('nq_show_grid','0'); else localStorage.removeItem('nq_show_grid');}],
+                          trail:    [()=>showTrail, v=>{showTrail=v; if(!v)localStorage.setItem('nq_trail','0'); else localStorage.removeItem('nq_trail');}] };
+      function syncSopts() {
+        Object.entries(extraOpts).forEach(([key, [getter]]) => {
+          const btn = document.getElementById('sopt-' + key);
+          if (!btn) return;
+          const val = getter();
+          btn.classList.toggle('on', val);
+          btn.querySelector('.ft-status').textContent = val ? 'ON' : 'OFF';
+        });
+      }
+      syncSopts();
+      document.querySelectorAll('[data-sopt]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const key = btn.dataset.sopt;
+          const [getter, setter] = extraOpts[key];
+          setter(!getter());
+          syncSopts();
+          // sync start screen
+          const startBtn = document.getElementById('feat-' + key);
+          if (startBtn) { startBtn.classList.toggle('on', getter()); startBtn.querySelector('.ft-status').textContent = getter() ? 'ON' : 'OFF'; }
+        });
+      });
+
+      // Food count
+      function syncSFood() {
+        document.querySelectorAll('[data-sfood]').forEach(b => {
+          const n = Number(b.dataset.sfood);
+          b.className = 'diff-opt-s' + (n === multiFoodCount ? ' active-s-easy' : '');
+        });
+      }
+      syncSFood();
+      document.querySelectorAll('[data-sfood]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          multiFoodCount = Number(btn.dataset.sfood);
+          localStorage.setItem('nq_multi_food', multiFoodCount);
+          syncSFood();
+          // sync start screen
+          document.querySelectorAll('[data-foodcount]').forEach(b => {
+            b.className = 'food-opt' + (Number(b.dataset.foodcount) === multiFoodCount ? ' active-easy' : '');
+          });
+        });
+      });
+
+      // Open / close
+      document.getElementById('settings-btn').addEventListener('click', () => {
+        syncSDiff(); syncSFeats(); syncSSkins(); syncSopts(); syncSFood();
+        document.getElementById('gameover-overlay').classList.remove('visible');
+        document.getElementById('settings-overlay').classList.add('visible');
+      });
+      document.getElementById('settings-close').addEventListener('click', () => {
+        document.getElementById('settings-overlay').classList.remove('visible');
+        document.getElementById('gameover-overlay').classList.add('visible');
+      });
+      document.getElementById('settings-play-btn').addEventListener('click', () => {
+        document.getElementById('settings-overlay').classList.remove('visible');
+        startGame();
+      });
+    })();
+
     // ── Game init ─────────────────────────────────────────────────────────────
     function initGame() {
       const mx = Math.floor(COLS / 2);
@@ -688,30 +1381,99 @@
       score = 0; foodEaten = 0;
       flashFx = 0; gameoverFx = 0;
       particles = []; scorePops = [];
+      prevSnake = []; lastStepTime = 0;
       specialFood = null;
+      bombFood    = null;
+      portals     = [];
+      portalCooldown = 0;
+      obstacles.clear();
+      scoreMultiplier = 1;
+      const mBtn = document.getElementById('sa-multiplier');
+      if (mBtn) { mBtn.classList.remove('active'); mBtn.textContent = '×2 Score Multiplier'; }
       difficulty  = selectedDiff;
+      obstaclesEnabled = featureObstacles;
+      extraFoods = [];
+      if (obstaclesEnabled) spawnObstacles();
       spawnFood();
+      syncExtraFoods();
+      if (featurePortals) spawnPortals();
       document.getElementById('hud-score').textContent = 0;
       document.getElementById('hud-len-val').textContent = snake.length;
       document.getElementById('hud-speed-val').textContent = 1;
     }
 
-    function spawnFood() {
+    function occupiedCells() {
       const occ = new Set(snake.map(s => s.x + ',' + s.y));
+      obstacles.forEach(k => occ.add(k));
+      portals.forEach(p => occ.add(p.x + ',' + p.y));
+      if (food)        occ.add(food.x + ',' + food.y);
+      extraFoods.forEach(f => occ.add(f.x + ',' + f.y));
       if (specialFood) occ.add(specialFood.x + ',' + specialFood.y);
-      let x, y;
-      do { x = Math.floor(Math.random() * COLS); y = Math.floor(Math.random() * ROWS); }
-      while (occ.has(x + ',' + y));
-      food = { x, y };
+      if (bombFood)    occ.add(bombFood.x + ',' + bombFood.y);
+      return occ;
+    }
+
+    function randFreeCell(occ) {
+      let x, y, t = 0;
+      do { x = Math.floor(Math.random() * COLS); y = Math.floor(Math.random() * ROWS); t++; }
+      while (occ.has(x + ',' + y) && t < 400);
+      return { x, y };
+    }
+
+    function spawnFood() {
+      const occ = occupiedCells();
+      occ.delete(food ? food.x + ',' + food.y : '');
+      const p = randFreeCell(occ);
+      food = { x: p.x, y: p.y };
+    }
+
+    function syncExtraFoods() {
+      const target = multiFoodCount - 1;
+      while (extraFoods.length > target) extraFoods.pop();
+      while (extraFoods.length < target) extraFoods.push(randFreeCell(occupiedCells()));
     }
 
     function spawnSpecial() {
+      const occ = occupiedCells();
+      const p = randFreeCell(occ);
+      specialFood = { x: p.x, y: p.y, born: performance.now() };
+    }
+
+    function spawnBomb() {
+      const occ = occupiedCells();
+      const p = randFreeCell(occ);
+      bombFood = { x: p.x, y: p.y, born: performance.now() };
+    }
+
+    function spawnObstacles() {
+      obstacles.clear();
+      const count = { easy: 8, normal: 14, hard: 22 }[difficulty] || 14;
+      const cx = Math.floor(COLS / 2), cy = Math.floor(ROWS / 2);
+      let tries = 0;
+      while (obstacles.size < count && tries < 600) {
+        tries++;
+        const x = Math.floor(Math.random() * COLS);
+        const y = Math.floor(Math.random() * ROWS);
+        if (Math.abs(x - cx) < 4 && Math.abs(y - cy) < 3) continue;
+        obstacles.add(x + ',' + y);
+      }
+    }
+
+    function spawnPortals() {
+      portals = [];
+      const cx = Math.floor(COLS / 2), cy = Math.floor(ROWS / 2);
       const occ = new Set(snake.map(s => s.x + ',' + s.y));
-      occ.add(food.x + ',' + food.y);
-      let x, y;
-      do { x = Math.floor(Math.random() * COLS); y = Math.floor(Math.random() * ROWS); }
-      while (occ.has(x + ',' + y));
-      specialFood = { x, y, born: performance.now() };
+      obstacles.forEach(k => occ.add(k));
+      for (let i = 0; i < 2; i++) {
+        let x, y, t = 0;
+        do {
+          x = Math.floor(Math.random() * COLS);
+          y = Math.floor(Math.random() * ROWS);
+          t++;
+        } while ((occ.has(x + ',' + y) || (Math.abs(x-cx)<4 && Math.abs(y-cy)<3)) && t < 300);
+        portals.push({ x, y });
+        occ.add(x + ',' + y);
+      }
     }
 
     function getInterval() {
@@ -758,31 +1520,72 @@
     }
 
     // ── Game step ─────────────────────────────────────────────────────────────
+    function applyPortal(head) {
+      if (portalCooldown > 0) { portalCooldown--; return head; }
+      for (let i = 0; i < portals.length; i++) {
+        if (head.x === portals[i].x && head.y === portals[i].y) {
+          const dest = portals[1 - i];
+          spawnParticles(dest.x, dest.y, i === 0 ? '#00ffff' : '#ff00ff', 14);
+          portalCooldown = 4;
+          return { x: dest.x, y: dest.y };
+        }
+      }
+      return head;
+    }
+
     function step() {
       dir = { ...nextDir };
-      const head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
+      let head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
 
       if (head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS) { endGame(); return; }
-      if (snake.some(s => s.x === head.x && s.y === head.y))             { endGame(); return; }
+      if (obstacles.has(head.x + ',' + head.y))             { endGame(); return; }
+      if (snake.some(s => s.x === head.x && s.y === head.y)) { endGame(); return; }
+
+      head = applyPortal(head);
 
       snake.unshift(head);
       let ate = false;
 
+      // Bomb check
+      if (bombFood && head.x === bombFood.x && head.y === bombFood.y) {
+        bombFood = null;
+        spawnParticles(head.x, head.y, '#ff3333', 18);
+        spawnScorePop(head.x, head.y, '💥', '#ff3333');
+        endGame(); return;
+      }
+
       if (head.x === food.x && head.y === food.y) {
-        score += 10;
-        foodEaten++;
-        flashFx = 1.0;
-        ate = true;
+        const pts = 10 * scoreMultiplier;
+        score += pts; foodEaten++;
+        flashFx = 1.0; ate = true;
         spawnParticles(head.x, head.y, '#ffd700', 10);
-        spawnScorePop(head.x, head.y, '+10', '#ffd700');
+        spawnScorePop(head.x, head.y, '+' + pts, '#ffd700');
         spawnFood();
         if (foodEaten % 5 === 0 && !specialFood) spawnSpecial();
-      } else if (specialFood && head.x === specialFood.x && head.y === specialFood.y) {
-        score += 50;
-        flashFx = 1.0;
-        ate = true;
+        if (foodEaten % 7 === 0 && !bombFood && featureBombs) spawnBomb();
+      } else {
+        // Extra foods
+        for (let _fi = extraFoods.length - 1; _fi >= 0; _fi--) {
+          if (head.x === extraFoods[_fi].x && head.y === extraFoods[_fi].y) {
+            const pts = 10 * scoreMultiplier;
+            score += pts; foodEaten++;
+            flashFx = 1.0; ate = true;
+            spawnParticles(head.x, head.y, '#ffd700', 10);
+            spawnScorePop(head.x, head.y, '+' + pts, '#ffd700');
+            extraFoods.splice(_fi, 1);
+            extraFoods.push(randFreeCell(occupiedCells()));
+            if (foodEaten % 5 === 0 && !specialFood) spawnSpecial();
+            if (foodEaten % 7 === 0 && !bombFood && featureBombs) spawnBomb();
+            break;
+          }
+        }
+      }
+
+      if (specialFood && head.x === specialFood.x && head.y === specialFood.y) {
+        const pts = 50 * scoreMultiplier;
+        score += pts; flashFx = 1.0; ate = true;
         spawnParticles(head.x, head.y, '#00ffee', 16);
-        spawnScorePop(head.x, head.y, '+50', '#00ffee');
+        spawnScorePop(head.x, head.y, '+' + pts, '#00ffee');
         specialFood = null;
         clearTimeout(loopTimer);
         loopTimer = setTimeout(gameLoop, getInterval() + 150);
@@ -792,8 +1595,8 @@
         return;
       }
 
-      // Special food expires after 7 s
       if (specialFood && performance.now() - specialFood.born > 7000) specialFood = null;
+      if (bombFood    && performance.now() - bombFood.born    > 6000) bombFood    = null;
 
       if (!ate) snake.pop();
 
@@ -808,13 +1611,18 @@
     function gameLoop() { step(); }
 
     function startGame() {
+      paused = false;
+      document.getElementById('pause-overlay').classList.remove('visible');
       initGame();
       gameRunning = true;
+      // Apply skin glow to canvas border
+      const sk = SKINS[selectedSkin] || SKINS.cyan;
+      document.getElementById('canvas-wrap').style.boxShadow =
+        `0 0 0 2px rgba(140,70,255,0.22), 0 0 36px ${sk.glow}88, 0 0 70px ${sk.glow}44`;
       document.getElementById('start-overlay').classList.remove('visible');
       document.getElementById('gameover-overlay').classList.remove('visible');
       clearTimeout(loopTimer);
       loopTimer = setTimeout(gameLoop, getInterval());
-      requestAnimationFrame(animate);
     }
 
     function endGame() {
@@ -861,26 +1669,178 @@
     document.getElementById('start-btn').addEventListener('click', startGame);
     document.getElementById('retry-btn').addEventListener('click', startGame);
 
-    // ── Rendering ─────────────────────────────────────────────────────────────
-    function drawBg() {
-      ctx.fillStyle = '#0c0a18';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // ── Pause ─────────────────────────────────────────────────────────────────
+    const pauseOverlay = document.getElementById('pause-overlay');
 
-      // Subtle grid
-      ctx.strokeStyle = 'rgba(70,35,120,0.16)';
-      ctx.lineWidth   = 0.5;
-      for (let x = 0; x <= COLS; x++) {
-        ctx.beginPath(); ctx.moveTo(x * CELL, 0); ctx.lineTo(x * CELL, canvas.height); ctx.stroke();
-      }
-      for (let y = 0; y <= ROWS; y++) {
-        ctx.beginPath(); ctx.moveTo(0, y * CELL); ctx.lineTo(canvas.width, y * CELL); ctx.stroke();
+    function setPause(val) {
+      paused = val;
+      pauseOverlay.classList.toggle('visible', paused);
+      if (!paused && gameRunning) {
+        clearTimeout(loopTimer);
+        loopTimer = setTimeout(gameLoop, getInterval());
+      } else if (paused) {
+        clearTimeout(loopTimer);
       }
     }
 
-    function drawFood(t) {
+    document.addEventListener('keydown', e => {
+      if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') return;
+      if ((e.key === ' ' || e.key === 'Escape') && gameRunning) {
+        e.preventDefault();
+        setPause(!paused);
+      }
+    });
+
+    // Patch patchedStep to respect pause
+    const _origPatchedStep = patchedStep;
+
+    // ── Touch / swipe controls ────────────────────────────────────────────────
+    let touchStart = null;
+    canvas.addEventListener('touchstart', e => {
+      e.preventDefault();
+      touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    }, { passive: false });
+    canvas.addEventListener('touchend', e => {
+      if (!touchStart || !gameRunning || paused) return;
+      const dx = e.changedTouches[0].clientX - touchStart.x;
+      const dy = e.changedTouches[0].clientY - touchStart.y;
+      touchStart = null;
+      if (Math.abs(dx) < 12 && Math.abs(dy) < 12) return;
+      let d;
+      if (Math.abs(dx) > Math.abs(dy)) d = dx > 0 ? {x:1,y:0} : {x:-1,y:0};
+      else                              d = dy > 0 ? {x:0,y:1} : {x:0,y:-1};
+      if (d.x === -dir.x && d.y === -dir.y) return;
+      nextDir = d;
+    }, { passive: false });
+
+    // D-pad buttons
+    // Apply hub control setting to D-pad and pause button
+    (function() {
+      const ctrl = localStorage.getItem('hub_control');
+      const dpad = document.getElementById('dpad');
+      const pauseBtn = document.getElementById('snake-pause-btn');
+      const show = ctrl === 'mobile';
+      const hide = ctrl === 'pc';
+      if (dpad) {
+        if (show) dpad.style.display = 'grid';
+        else if (hide) dpad.style.display = 'none';
+      }
+      if (pauseBtn) {
+        if (show) pauseBtn.style.display = 'flex';
+        else if (hide) pauseBtn.style.display = 'none';
+      }
+    })();
+
+    function dpadDir(d) {
+      if (!gameRunning || paused) return;
+      if (d.x === -dir.x && d.y === -dir.y) return;
+      nextDir = d;
+    }
+    const _dpadEl = document.getElementById('dpad');
+    [['dp-up',{x:0,y:-1}],['dp-down',{x:0,y:1}],['dp-left',{x:-1,y:0}],['dp-right',{x:1,y:0}]].forEach(([id,d]) => {
+      const btn = document.getElementById(id);
+      btn.addEventListener('touchstart', e => {
+        e.preventDefault();
+        btn.classList.add('pressed');
+        _dpadEl && _dpadEl.classList.add('touching');
+        dpadDir(d);
+      }, { passive: false });
+      btn.addEventListener('touchend', e => {
+        btn.classList.remove('pressed');
+        // remove touching if no other button active
+        if (!_dpadEl.querySelector('.pressed')) _dpadEl.classList.remove('touching');
+      });
+      btn.addEventListener('click', () => dpadDir(d));
+    });
+
+    // Mobile pause button
+    const _pauseBtn = document.getElementById('snake-pause-btn');
+    if (_pauseBtn) {
+      _pauseBtn.addEventListener('touchstart', e => {
+        e.preventDefault();
+        _pauseBtn.classList.add('touching');
+        if (gameRunning) setPause(!paused);
+      }, { passive: false });
+      _pauseBtn.addEventListener('touchend',    () => _pauseBtn.classList.remove('touching'));
+      _pauseBtn.addEventListener('touchcancel', () => _pauseBtn.classList.remove('touching'));
+      _pauseBtn.addEventListener('click', () => { if (gameRunning) setPause(!paused); });
+    }
+
+    // ── Toast notification ────────────────────────────────────────────────────
+    function showToast(msg, color) {
+      let t = document.getElementById('snake-toast');
+      if (!t) {
+        t = document.createElement('div');
+        t.id = 'snake-toast';
+        Object.assign(t.style, {
+          position:'fixed', bottom:'32px', left:'50%', transform:'translateX(-50%) translateY(20px)',
+          background:'rgba(14,8,30,0.96)', border:'1.5px solid rgba(160,80,255,0.55)',
+          borderRadius:'12px', padding:'11px 24px', fontSize:'0.82rem', fontWeight:'700',
+          letterSpacing:'0.06em', color:'#d0aaff', boxShadow:'0 0 28px rgba(120,0,220,0.40)',
+          zIndex:'9999', pointerEvents:'none', opacity:'0',
+          transition:'opacity 0.22s ease, transform 0.22s ease',
+          fontFamily:"'Orbitron',sans-serif", textAlign:'center', whiteSpace:'nowrap',
+        });
+        document.body.appendChild(t);
+      }
+      clearTimeout(t._timer);
+      t.style.color  = color || '#d0aaff';
+      t.style.borderColor = color ? color.replace(')',',0.55)').replace('rgb','rgba') : 'rgba(160,80,255,0.55)';
+      t.textContent  = msg;
+      t.style.opacity   = '1';
+      t.style.transform = 'translateX(-50%) translateY(0)';
+      t._timer = setTimeout(() => {
+        t.style.opacity   = '0';
+        t.style.transform = 'translateX(-50%) translateY(20px)';
+      }, 3000);
+    }
+
+    // ── 'P' key → open admin panel ────────────────────────────────────────────
+    document.addEventListener('keydown', e => {
+      if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') return;
+      if (e.key === 'p' || e.key === 'P') {
+        if (isAdminSession()) {
+          sidebar.classList.toggle('open');
+        } else {
+          showToast('⚠ Login as Admin from the main menu first', '#ffaa44');
+        }
+      }
+    });
+
+    // ── Rendering ─────────────────────────────────────────────────────────────
+    function drawBg(t) {
+      ctx.fillStyle = '#080614';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Twinkling stars
+      STARS.forEach(s => {
+        const twinkle = 0.45 + 0.55 * (Math.sin(t * s.speed + s.phase) * 0.5 + 0.5);
+        ctx.save();
+        ctx.globalAlpha = s.alpha * twinkle;
+        ctx.fillStyle = '#e8d8ff';
+        ctx.beginPath();
+        ctx.arc(s.x * canvas.width, s.y * canvas.height, s.r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      });
+
+      // Grid
+      if (showGrid) {
+        ctx.strokeStyle = 'rgba(55,25,95,0.13)';
+        ctx.lineWidth   = 0.5;
+        for (let x = 0; x <= COLS; x++) {
+          ctx.beginPath(); ctx.moveTo(x * CELL, 0); ctx.lineTo(x * CELL, canvas.height); ctx.stroke();
+        }
+        for (let y = 0; y <= ROWS; y++) {
+          ctx.beginPath(); ctx.moveTo(0, y * CELL); ctx.lineTo(canvas.width, y * CELL); ctx.stroke();
+        }
+      }
+    }
+
+    function drawFood(t, fx, fy) {
       const pulse = (Math.sin(t * 3.5) + 1) / 2;
-      const cx = food.x * CELL + CELL / 2;
-      const cy = food.y * CELL + CELL / 2;
+      const cx = (fx !== undefined ? fx : food.x) * CELL + CELL / 2;
+      const cy = (fy !== undefined ? fy : food.y) * CELL + CELL / 2;
       const r  = CELL * 0.28 + pulse * CELL * 0.07;
 
       ctx.save();
@@ -940,68 +1900,134 @@
       ctx.restore();
     }
 
-    function drawSnake() {
+    function drawSnake(t) {
+      if (!snake || snake.length === 0) return;
+      const sk  = SKINS[selectedSkin] || SKINS.cyan;
       const len = snake.length;
-      for (let i = len - 1; i >= 0; i--) {
-        const seg = snake[i];
-        const pad = i === 0 ? 2 : 3;
-        const px  = seg.x * CELL + pad;
-        const py  = seg.y * CELL + pad;
-        const sw  = CELL - pad * 2;
-        const frac = i / Math.max(1, len - 1);
+
+      // Ease-out: starts immediately, decelerates at the end
+      const raw  = lastStepTime > 0 ? Math.min(1, (performance.now() - lastStepTime) / Math.max(30, currentInterval)) : 1;
+      const prog = 1 - Math.pow(1 - raw, 2);
+
+      function segPos(i) {
+        const cur = snake[i];
+        const prv = prevSnake[i];
+        if (!prv || prog >= 1) return { x: cur.x * CELL + CELL / 2, y: cur.y * CELL + CELL / 2 };
+        const dx = cur.x - prv.x;
+        const dy = cur.y - prv.y;
+        // Detect wall-wrap: if distance > half the board, snap to current position
+        if (Math.abs(dx) > COLS / 2 || Math.abs(dy) > ROWS / 2) {
+          return { x: cur.x * CELL + CELL / 2, y: cur.y * CELL + CELL / 2 };
+        }
+        return {
+          x: (prv.x + dx * prog) * CELL + CELL / 2,
+          y: (prv.y + dy * prog) * CELL + CELL / 2,
+        };
+      }
+
+      const R  = CELL * 0.43;
+      const HR = CELL * 0.47;
+
+      // Motion trail — ghost images behind head
+      if (showTrail && prog < 0.75 && len > 0) {
+        for (let _ti = 2; _ti >= 1; _ti--) {
+          const _tp  = Math.max(0, prog - _ti * 0.20);
+          const _eop = 1 - Math.pow(1 - _tp, 2);
+          const prv0 = prevSnake[0];
+          if (!prv0) break;
+          const _tx  = (prv0.x + (snake[0].x - prv0.x) * _eop) * CELL + CELL / 2;
+          const _ty  = (prv0.y + (snake[0].y - prv0.y) * _eop) * CELL + CELL / 2;
+          ctx.save();
+          ctx.globalAlpha = (0.14 - _ti * 0.05) * (1 - prog);
+          ctx.fillStyle = sk.h2;
+          ctx.shadowColor = sk.glow; ctx.shadowBlur = 10;
+          ctx.beginPath(); ctx.arc(_tx, _ty, HR * (1 - _ti * 0.1), 0, Math.PI * 2); ctx.fill();
+          ctx.restore();
+        }
+      }
+
+      // Draw body back-to-front (tail → neck)
+      for (let i = len - 1; i >= 1; i--) {
+        const frac   = i / Math.max(1, len - 1);
+        const bright = 1 - frac * 0.62;
+        const alpha  = 0.55 + bright * 0.45;
+        const [rv, gv, bv] = sk.bodyRgb(bright);
+        const color = `rgba(${rv},${gv},${bv},${alpha})`;
+        const pos   = segPos(i);
+        const posN  = segPos(i - 1);
 
         ctx.save();
-        if (i === 0) {
-          // Head
-          ctx.shadowColor = '#00ffee';
-          ctx.shadowBlur  = 20;
-          const g = ctx.createLinearGradient(px, py, px + sw, py + sw);
-          g.addColorStop(0, '#aaffff');
-          g.addColorStop(1, '#00cccc');
-          ctx.fillStyle = g;
-          ctx.beginPath();
-          ctx.roundRect(px, py, sw, sw, sw * 0.3);
-          ctx.fill();
-          ctx.shadowBlur = 0;
+        ctx.fillStyle   = color;
+        ctx.strokeStyle = color;
+        ctx.shadowColor = `rgba(${rv},${gv},${bv},0.5)`;
+        ctx.shadowBlur  = 9 * bright;
+        ctx.lineWidth   = R * 2;
+        ctx.lineCap     = 'round';
 
-          // Eyes — rotate with direction
-          const eyeSize = sw * 0.17;
-          const eyeOff  = sw * 0.22;
-          const ex1x = seg.x * CELL + CELL/2 + dir.y * eyeOff  - dir.x * eyeOff * 0.5 - dir.y * eyeOff * 0.5;
-          const ex1y = seg.y * CELL + CELL/2 + dir.x * eyeOff  - dir.y * eyeOff * 0.5 + dir.x * eyeOff * 0.5;
-          const ex2x = seg.x * CELL + CELL/2 - dir.y * eyeOff  - dir.x * eyeOff * 0.5 + dir.y * eyeOff * 0.5;
-          const ex2y = seg.y * CELL + CELL/2 - dir.x * eyeOff  - dir.y * eyeOff * 0.5 - dir.x * eyeOff * 0.5;
+        // Tube connecting this segment to the next toward head
+        ctx.beginPath();
+        ctx.moveTo(pos.x, pos.y);
+        ctx.lineTo(posN.x, posN.y);
+        ctx.stroke();
 
-          const eyeOffFwd = sw * 0.22;
-          const e1x = seg.x * CELL + CELL/2 + dir.x * eyeOffFwd * 0.5 + dir.y * eyeOff * 0.55;
-          const e1y = seg.y * CELL + CELL/2 + dir.y * eyeOffFwd * 0.5 - dir.x * eyeOff * 0.55;
-          const e2x = seg.x * CELL + CELL/2 + dir.x * eyeOffFwd * 0.5 - dir.y * eyeOff * 0.55;
-          const e2y = seg.y * CELL + CELL/2 + dir.y * eyeOffFwd * 0.5 + dir.x * eyeOff * 0.55;
+        // Filled circle at segment centre
+        ctx.shadowBlur = 0;
+        ctx.beginPath();
+        ctx.arc(pos.x, pos.y, R, 0, Math.PI * 2);
+        ctx.fill();
 
-          ctx.fillStyle = '#001818';
-          ctx.beginPath(); ctx.arc(e1x, e1y, eyeSize, 0, Math.PI * 2); ctx.fill();
-          ctx.beginPath(); ctx.arc(e2x, e2y, eyeSize, 0, Math.PI * 2); ctx.fill();
-          // Pupils
-          ctx.fillStyle = '#00ffee';
-          ctx.beginPath(); ctx.arc(e1x + dir.x * eyeSize * 0.4, e1y + dir.y * eyeSize * 0.4, eyeSize * 0.45, 0, Math.PI * 2); ctx.fill();
-          ctx.beginPath(); ctx.arc(e2x + dir.x * eyeSize * 0.4, e2y + dir.y * eyeSize * 0.4, eyeSize * 0.45, 0, Math.PI * 2); ctx.fill();
-        } else {
-          // Body segment
-          const bright = 1 - frac * 0.6;
-          const alpha  = 0.55 + bright * 0.45;
-          ctx.shadowColor = `rgba(150,60,255,${alpha * 0.55})`;
-          ctx.shadowBlur  = 12 * bright;
-          const rv = Math.round(120 + bright * 80);
-          const gv = Math.round(30  + bright * 20);
-          const bv = Math.round(210 + bright * 45);
-          ctx.fillStyle = `rgba(${rv},${gv},${bv},${alpha})`;
-          ctx.beginPath();
-          ctx.roundRect(px, py, sw, sw, sw * 0.25);
-          ctx.fill();
-          ctx.shadowBlur = 0;
-        }
         ctx.restore();
       }
+
+      // Head circle
+      const hPos = segPos(0);
+      ctx.save();
+      ctx.shadowColor = sk.glow;
+      ctx.shadowBlur  = 28;
+      const grd = ctx.createRadialGradient(hPos.x - HR * 0.25, hPos.y - HR * 0.25, 0, hPos.x, hPos.y, HR);
+      grd.addColorStop(0, sk.h1);
+      grd.addColorStop(1, sk.h2);
+      ctx.fillStyle = grd;
+      ctx.beginPath();
+      ctx.arc(hPos.x, hPos.y, HR, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      // Eyes
+      const eyeR  = HR * 0.22;
+      const eyeOff = HR * 0.44;
+      const e1 = { x: hPos.x + dir.y * eyeOff, y: hPos.y - dir.x * eyeOff };
+      const e2 = { x: hPos.x - dir.y * eyeOff, y: hPos.y + dir.x * eyeOff };
+      ctx.fillStyle = 'rgba(0,0,0,0.82)';
+      ctx.beginPath(); ctx.arc(e1.x, e1.y, eyeR, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(e2.x, e2.y, eyeR, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = sk.pupil;
+      ctx.shadowColor = sk.pupil; ctx.shadowBlur = 5;
+      const po = eyeR * 0.42;
+      ctx.beginPath(); ctx.arc(e1.x + dir.x * po, e1.y + dir.y * po, eyeR * 0.48, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(e2.x + dir.x * po, e2.y + dir.y * po, eyeR * 0.48, 0, Math.PI * 2); ctx.fill();
+      ctx.shadowBlur = 0;
+
+      // Tongue flick
+      const flick = Math.sin(t * 9);
+      if (flick > 0.1) {
+        const ext    = flick * CELL * 0.44;
+        const tRoot  = { x: hPos.x + dir.x * HR, y: hPos.y + dir.y * HR };
+        const tMid   = { x: tRoot.x + dir.x * ext * 0.45, y: tRoot.y + dir.y * ext * 0.45 };
+        const spread = CELL * 0.15;
+        ctx.strokeStyle = '#ff1f55';
+        ctx.lineWidth   = Math.max(1.2, CELL * 0.07);
+        ctx.lineCap     = 'round';
+        ctx.shadowColor = '#ff1f55'; ctx.shadowBlur = 7;
+        ctx.beginPath(); ctx.moveTo(tRoot.x, tRoot.y); ctx.lineTo(tMid.x, tMid.y); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(tMid.x, tMid.y);
+        ctx.lineTo(tMid.x + dir.x * ext * 0.55 + dir.y * spread, tMid.y + dir.y * ext * 0.55 - dir.x * spread); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(tMid.x, tMid.y);
+        ctx.lineTo(tMid.x + dir.x * ext * 0.55 - dir.y * spread, tMid.y + dir.y * ext * 0.55 + dir.x * spread); ctx.stroke();
+        ctx.shadowBlur = 0;
+      }
+
+      ctx.restore();
     }
 
     function drawParticles() {
@@ -1024,14 +2050,132 @@
       }
     }
 
+    function drawObstacles(t) {
+      if (obstacles.size === 0) return;
+      const pulse = (Math.sin(t * 1.8) + 1) / 2;
+      ctx.save();
+      obstacles.forEach(key => {
+        const [x, y] = key.split(',').map(Number);
+        const px = x * CELL + 2, py = y * CELL + 2;
+        const sw = CELL - 4;
+        ctx.shadowColor = `rgba(110,0,180,${0.5 + pulse * 0.3})`;
+        ctx.shadowBlur  = 10 + pulse * 8;
+        ctx.fillStyle   = '#130824';
+        ctx.beginPath();
+        ctx.roundRect(px, py, sw, sw, 4);
+        ctx.fill();
+        ctx.shadowBlur  = 0;
+        // cross lines
+        ctx.strokeStyle = `rgba(140,50,220,${0.55 + pulse * 0.25})`;
+        ctx.lineWidth   = 1.5;
+        const m = CELL * 0.5, q = CELL * 0.22;
+        ctx.beginPath();
+        ctx.moveTo(x*CELL + q, y*CELL + m); ctx.lineTo(x*CELL + CELL - q, y*CELL + m);
+        ctx.moveTo(x*CELL + m, y*CELL + q); ctx.lineTo(x*CELL + m, y*CELL + CELL - q);
+        ctx.stroke();
+        // corner dots
+        ctx.fillStyle = `rgba(170,80,255,${0.45 + pulse * 0.3})`;
+        [[0.18,0.18],[0.82,0.18],[0.18,0.82],[0.82,0.82]].forEach(([fx,fy]) => {
+          ctx.beginPath();
+          ctx.arc(x*CELL + fx*CELL, y*CELL + fy*CELL, 2, 0, Math.PI*2);
+          ctx.fill();
+        });
+      });
+      ctx.restore();
+    }
+
+    function drawBomb(t) {
+      if (!bombFood) return;
+      const age   = (performance.now() - bombFood.born) / 6000;
+      const fade  = age > 0.75 ? 1 - (age - 0.75) / 0.25 : 1;
+      const pulse = (Math.sin(t * (7 + age * 6)) + 1) / 2;
+      const cx = bombFood.x * CELL + CELL / 2;
+      const cy = bombFood.y * CELL + CELL / 2;
+      const r  = CELL * 0.30 + pulse * CELL * 0.07;
+      ctx.save();
+      ctx.globalAlpha = fade;
+      ctx.shadowColor = '#ff2200';
+      ctx.shadowBlur  = 20 + pulse * 18;
+      ctx.fillStyle   = '#aa0000';
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+      ctx.shadowBlur  = 0;
+      ctx.fillStyle   = `hsl(${0 + pulse*20},100%,${50 + pulse*20}%)`;
+      ctx.beginPath(); ctx.arc(cx, cy, r * 0.62, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = 'rgba(255,230,220,0.92)';
+      ctx.lineWidth   = Math.max(1.2, r * 0.32);
+      ctx.lineCap     = 'round';
+      const d = r * 0.30;
+      ctx.beginPath();
+      ctx.moveTo(cx - d, cy - d); ctx.lineTo(cx + d, cy + d);
+      ctx.moveTo(cx + d, cy - d); ctx.lineTo(cx - d, cy + d);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawPortals(t) {
+      if (portals.length < 2) return;
+      const colors = ['#00ffff', '#ff00ff'];
+      portals.forEach((portal, i) => {
+        const cx    = portal.x * CELL + CELL / 2;
+        const cy    = portal.y * CELL + CELL / 2;
+        const spin  = t * (i === 0 ? 2.8 : -2.8);
+        const pulse = (Math.sin(t * 4 + i * Math.PI) + 1) / 2;
+        const r     = CELL * 0.38 + pulse * CELL * 0.07;
+        const col   = colors[i];
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.shadowColor = col;
+        ctx.shadowBlur  = 18 + pulse * 14;
+        // spinning arcs
+        for (let j = 0; j < 3; j++) {
+          const sa = spin + (j / 3) * Math.PI * 2;
+          ctx.globalAlpha = 0.55 + pulse * 0.35;
+          ctx.strokeStyle = col;
+          ctx.lineWidth   = 2.5;
+          ctx.beginPath();
+          ctx.arc(0, 0, r, sa, sa + Math.PI * 1.1);
+          ctx.stroke();
+        }
+        // inner fill
+        ctx.globalAlpha = 0.18 + pulse * 0.14;
+        ctx.fillStyle   = col;
+        ctx.shadowBlur  = 8;
+        ctx.beginPath(); ctx.arc(0, 0, r * 0.48, 0, Math.PI * 2); ctx.fill();
+        // label A/B
+        ctx.globalAlpha  = 0.85;
+        ctx.shadowBlur   = 0;
+        ctx.fillStyle    = col;
+        ctx.font         = `bold ${Math.floor(r * 0.72)}px Orbitron,monospace`;
+        ctx.textAlign    = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(i === 0 ? 'A' : 'B', 0, 0);
+        ctx.restore();
+      });
+    }
+
+    // ── Stars ─────────────────────────────────────────────────────────────
+    const STARS = Array.from({length: 90}, () => ({
+      x: Math.random(), y: Math.random(),
+      r: 0.4 + Math.random() * 1.4,
+      phase: Math.random() * Math.PI * 2,
+      speed: 2 + Math.random() * 5,
+      alpha: 0.15 + Math.random() * 0.55,
+    }));
+
     let animRunning = false;
     function animate(ts) {
       const t = ts / 1000;
-      drawBg();
+      try {
+      drawBg(t);
+      drawObstacles(t);
+      drawPortals(t);
       if (food)        drawFood(t);
+      extraFoods.forEach(ef => drawFood(t, ef.x, ef.y));
       if (specialFood) drawSpecial(t);
-      if (snake)       drawSnake();
+      if (bombFood)    drawBomb(t);
+      if (snake)       drawSnake(t);
       drawParticles();
+      } catch(e) { console.error('animate error:', e); }
 
       // Eat flash
       if (flashFx > 0) {
@@ -1064,13 +2208,23 @@
 
     function isAdminSession() { return localStorage.getItem(ADMIN_SESSION_KEY) === '1'; }
 
-    // Show admin button only if session active
-    if (isAdminSession()) {
-      document.getElementById('snake-admin-btn').classList.add('visible');
+    const sidebar = document.getElementById('snake-admin-sidebar');
+
+    function adminLogout() {
+      localStorage.removeItem(ADMIN_SESSION_KEY);
+      sidebar.classList.remove('open');
+      showToast('🚪 Logged out of Admin', '#ff8888');
     }
 
-    const sidebar = document.getElementById('snake-admin-sidebar');
-    document.getElementById('snake-admin-btn').addEventListener('click', () => sidebar.classList.toggle('open'));
+    document.getElementById('snake-admin-btn').addEventListener('click', () => {
+      if (isAdminSession()) {
+        sidebar.classList.toggle('open');
+      } else {
+        showToast('⛔ Access denied — please log in as Admin from the Hub first', '#ff5555');
+      }
+    });
+
+    document.getElementById('sa-logout').addEventListener('click', adminLogout);
     document.getElementById('snake-admin-close').addEventListener('click', () => sidebar.classList.remove('open'));
 
     document.getElementById('sa-godmode').addEventListener('click', () => {
@@ -1107,40 +2261,142 @@
       document.getElementById('hud-hi').textContent = 0;
     });
 
+    // ── New admin features ────────────────────────────────────────────────────
+    let scoreMultiplier = 1;
+
+    document.getElementById('sa-multiplier').addEventListener('click', () => {
+      scoreMultiplier = scoreMultiplier === 1 ? 2 : 1;
+      const btn = document.getElementById('sa-multiplier');
+      btn.classList.toggle('active', scoreMultiplier === 2);
+      btn.textContent = scoreMultiplier === 2 ? '×2 Multiplier ON' : '×2 Score Multiplier';
+      showToast(scoreMultiplier === 2 ? '×2 Score Multiplier ON' : 'Score Multiplier OFF', scoreMultiplier === 2 ? '#ffd700' : '#aaaaaa');
+    });
+
+    document.getElementById('sa-trimsnake').addEventListener('click', () => {
+      if (!gameRunning || snake.length <= 3) return;
+      snake = snake.slice(0, 3);
+      document.getElementById('hud-len-val').textContent = snake.length;
+      showToast('✂️ Snake trimmed to 3', '#00ffcc');
+    });
+
+    document.getElementById('sa-forcspecial').addEventListener('click', () => {
+      if (!gameRunning) return;
+      specialFood = null;
+      spawnSpecial();
+      showToast('💎 Special food spawned!', '#00eeff');
+    });
+
+    document.getElementById('sa-softreset').addEventListener('click', () => {
+      if (!gameRunning) return;
+      const savedHi = hiScore;
+      startGame();
+      hiScore = savedHi;
+      document.getElementById('hud-hi').textContent = hiScore;
+      showToast('🔄 Game reset — hi score kept', '#cc88ff');
+    });
+
+    document.getElementById('sa-forcbomb').addEventListener('click', () => {
+      if (!gameRunning) return;
+      bombFood = null;
+      spawnBomb();
+      showToast('💣 Bomb spawned!', '#ff4444');
+    });
+
+    document.getElementById('sa-obstacles').addEventListener('click', () => {
+      obstaclesEnabled = !obstaclesEnabled;
+      const btn = document.getElementById('sa-obstacles');
+      btn.classList.toggle('active', obstaclesEnabled);
+      btn.textContent = obstaclesEnabled ? '🧱 Obstacles ON' : '🧱 Obstacles OFF';
+      if (!obstaclesEnabled) {
+        obstacles.clear();
+        showToast('🧱 Obstacles removed', '#aaaaaa');
+      } else {
+        if (gameRunning) { spawnObstacles(); spawnPortals(); }
+        showToast('🧱 Obstacles enabled', '#cc88ff');
+      }
+    });
+
+    document.getElementById('sa-rerollmap').addEventListener('click', () => {
+      if (!gameRunning) return;
+      if (obstaclesEnabled) spawnObstacles();
+      spawnPortals();
+      showToast('🗺 Map rerolled!', '#88ddff');
+    });
+
     // Patch getInterval to respect speedMode
     const _origGetInterval = getInterval;
     // Override endGame to skip death in god mode
     const _origEndGame = endGame;
     const _origStep    = step;
 
-    // Patch step: skip wall/self collision if godMode
+    // Patch step: skip wall/self/obstacle collision if godMode
     function patchedStep() {
+      prevSnake = snake.map(s => ({ x: s.x, y: s.y }));
+      lastStepTime = performance.now();
+      currentInterval = speedMode === 'max' ? 40 : speedMode === 'slow' ? 280 : getInterval();
       dir = { ...nextDir };
-      const head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
+      let head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
 
-      if (!godMode) {
-        if (head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS) { endGame(); return; }
-        if (snake.some(s => s.x === head.x && s.y === head.y))             { endGame(); return; }
-      } else {
-        // Wrap walls in god mode
+      if (godMode || wallWrap) {
         head.x = (head.x + COLS) % COLS;
         head.y = (head.y + ROWS) % ROWS;
+      } else {
+        if (head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS) { endGame(); return; }
       }
+      if (!godMode) {
+        if (obstacles.has(head.x + ',' + head.y))              { endGame(); return; }
+        if (snake.some(s => s.x === head.x && s.y === head.y)) { endGame(); return; }
+      }
+
+      head = applyPortal(head);
 
       snake.unshift(head);
       let ate = false;
 
+      // Bomb: in god mode lose 30 pts instead of dying
+      if (bombFood && head.x === bombFood.x && head.y === bombFood.y) {
+        bombFood = null;
+        spawnParticles(head.x, head.y, '#ff3333', 18);
+        if (godMode) {
+          score = Math.max(0, score - 30);
+          spawnScorePop(head.x, head.y, '-30', '#ff3333');
+        } else {
+          spawnScorePop(head.x, head.y, '💥', '#ff3333');
+          endGame(); return;
+        }
+      }
+
       if (head.x === food.x && head.y === food.y) {
-        score += 10; foodEaten++;
+        const pts = 10 * scoreMultiplier;
+        score += pts; foodEaten++;
         flashFx = 1.0; ate = true;
         spawnParticles(head.x, head.y, '#ffd700', 10);
-        spawnScorePop(head.x, head.y, '+10', '#ffd700');
+        spawnScorePop(head.x, head.y, '+' + pts, '#ffd700');
         spawnFood();
         if (foodEaten % 5 === 0 && !specialFood) spawnSpecial();
-      } else if (specialFood && head.x === specialFood.x && head.y === specialFood.y) {
-        score += 50; flashFx = 1.0; ate = true;
+        if (foodEaten % 7 === 0 && !bombFood && featureBombs) spawnBomb();
+      } else {
+        // Check extra foods
+        for (let _fi = extraFoods.length - 1; _fi >= 0; _fi--) {
+          if (head.x === extraFoods[_fi].x && head.y === extraFoods[_fi].y) {
+            const pts = 10 * scoreMultiplier;
+            score += pts; foodEaten++;
+            flashFx = 1.0; ate = true;
+            spawnParticles(head.x, head.y, '#ffd700', 10);
+            spawnScorePop(head.x, head.y, '+' + pts, '#ffd700');
+            extraFoods.splice(_fi, 1);
+            extraFoods.push(randFreeCell(occupiedCells()));
+            if (foodEaten % 5 === 0 && !specialFood) spawnSpecial();
+            if (foodEaten % 7 === 0 && !bombFood && featureBombs) spawnBomb();
+            break;
+          }
+        }
+      }
+      if (specialFood && head.x === specialFood.x && head.y === specialFood.y) {
+        const pts = 50 * scoreMultiplier;
+        score += pts; flashFx = 1.0; ate = true;
         spawnParticles(head.x, head.y, '#00ffee', 16);
-        spawnScorePop(head.x, head.y, '+50', '#00ffee');
+        spawnScorePop(head.x, head.y, '+' + pts, '#00ffee');
         specialFood = null;
         clearTimeout(loopTimer);
         const iv = speedMode === 'max' ? 40 : speedMode === 'slow' ? 280 : getInterval() + 150;
@@ -1152,6 +2408,7 @@
       }
 
       if (specialFood && performance.now() - specialFood.born > 7000) specialFood = null;
+      if (bombFood    && performance.now() - bombFood.born    > 6000) bombFood    = null;
       if (!ate) snake.pop();
 
       document.getElementById('hud-score').textContent   = score;
@@ -1164,7 +2421,7 @@
     }
 
     // Replace step with patched version
-    gameLoop = function() { patchedStep(); };
+    gameLoop = function() { if (!paused) patchedStep(); };
 
     // ── Superadmin panel ──────────────────────────────────────────────────────
     const SUPER_PW_KEY = 'kq_super_pw';
@@ -1175,23 +2432,36 @@
     const saControls  = document.getElementById('sa-controls');
     const saPwInput   = document.getElementById('sa-pw-input');
     const saPwMsg     = document.getElementById('sa-pw-msg');
-    let superUnlocked = false;
+    const SA_SES_KEY  = 'kq_super_session';
+
+    function isSuperSession() { return localStorage.getItem(SA_SES_KEY) === '1'; }
 
     function openSuperadmin() {
-      superUnlocked = false;
-      saLoginBox.style.display  = 'flex';
-      saControls.style.display  = 'none';
-      saPwInput.value   = '';
-      saPwMsg.textContent = '';
       saOverlay.classList.add('open');
-      setTimeout(() => saPwInput.focus(), 80);
+      if (isSuperSession()) {
+        saLoginBox.style.display = 'none';
+        saControls.style.display = 'flex';
+        refreshSaStats();
+      } else {
+        saLoginBox.style.display = 'flex';
+        saControls.style.display = 'none';
+        saPwInput.value     = '';
+        saPwMsg.textContent = '';
+        setTimeout(() => saPwInput.focus(), 80);
+      }
     }
 
     function closeSuperadmin() {
       saOverlay.classList.remove('open');
-      superUnlocked = false;
-      saPwInput.value = '';
+    }
+
+    function exitSuperSession() {
+      localStorage.removeItem(SA_SES_KEY);
+      saLoginBox.style.display = 'flex';
+      saControls.style.display = 'none';
+      saPwInput.value     = '';
       saPwMsg.textContent = '';
+      saOverlay.classList.remove('open');
     }
 
     function refreshSaStats() {
@@ -1206,14 +2476,14 @@
       openSuperadmin();
     });
     document.getElementById('sa-close-btn').addEventListener('click', closeSuperadmin);
-    document.getElementById('sa-login-cancel').addEventListener('click', closeSuperadmin);
+    document.getElementById('sa-login-cancel').addEventListener('click', exitSuperSession);
     saOverlay.addEventListener('click', e => { if (e.target === saOverlay) closeSuperadmin(); });
 
     saPwInput.addEventListener('input', e => {
       const val = e.target.value;
       if (val.length < getSuperPw().length) return;
       if (val === getSuperPw()) {
-        superUnlocked = true;
+        localStorage.setItem(SA_SES_KEY, '1');
         saPwInput.value = '';
         saPwMsg.textContent = '';
         saLoginBox.style.display = 'none';
@@ -1277,16 +2547,17 @@
 
     // Revoke admin session
     document.getElementById('sa-revoke-session').addEventListener('click', () => {
-      if (!superUnlocked) return;
       localStorage.removeItem(ADMIN_SESSION_KEY);
       document.getElementById('snake-admin-btn').classList.remove('visible');
       refreshSaStats();
       closeSuperadmin();
     });
 
-    // ── Secret word "root" → open superadmin ─────────────────────────────────
+    document.getElementById('sa-exit-super').addEventListener('click', exitSuperSession);
+
+    // ── Secret word "ooo" → open superadmin ──────────────────────────────────
     (function() {
-      const SECRET = 'root';
+      const SECRET = 'ooo';
       let buf = '', timer = null;
       document.addEventListener('keydown', e => {
         if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') return;
@@ -1302,5 +2573,6 @@
       });
     })();
   </script>
+  <div id="ac-toast">⚠️ Access Denied: Inspection is prohibited!</div>
 </body>
 </html>
