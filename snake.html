@@ -750,6 +750,20 @@
       <span>⚙ Admin</span>
       <button class="sa-close" id="snake-admin-close">✕</button>
     </div>
+
+    <!-- Login form (shown when not logged in) -->
+    <div id="snake-adm-login">
+      <div style="font-size:2rem;text-align:center;margin-bottom:6px;filter:drop-shadow(0 0 10px rgba(180,80,255,0.6))">🔐</div>
+      <div style="font-family:'Orbitron',sans-serif;font-size:0.75rem;font-weight:900;letter-spacing:0.12em;color:#c880ff;text-align:center;margin-bottom:12px">ADMIN LOGIN</div>
+      <input id="snake-adm-pw-input" type="password" placeholder="Enter admin code" maxlength="32" autocomplete="off"
+        style="width:100%;background:rgba(255,255,255,0.07);border:1.5px solid rgba(160,80,255,0.38);border-radius:8px;color:#e0ccff;font-size:0.82rem;padding:9px 12px;outline:none;font-family:'Orbitron',monospace;letter-spacing:0.10em;text-align:center;transition:border-color 0.2s,box-shadow 0.2s;box-sizing:border-box;">
+      <div id="snake-adm-pw-msg" style="font-size:0.68rem;text-align:center;min-height:14px;color:#ff6666;margin-top:6px;letter-spacing:0.04em;"></div>
+      <button id="snake-adm-login-btn"
+        style="width:100%;margin-top:8px;background:linear-gradient(135deg,rgba(120,0,220,0.60),rgba(80,0,160,0.50));border:1px solid rgba(200,100,255,0.50);color:#e0aaff;padding:10px;border-radius:8px;font-size:0.78rem;font-weight:700;letter-spacing:0.06em;cursor:pointer;transition:background 0.15s,box-shadow 0.15s;">🔓 Login</button>
+    </div>
+
+    <!-- Controls (shown when logged in) -->
+    <div id="snake-adm-controls">
     <button class="sa-btn" id="sa-godmode">🛡 God Mode</button>
     <button class="sa-btn" id="sa-maxspeed">⚡ Max Speed</button>
     <button class="sa-btn" id="sa-slowmode">🐢 Slow Mode</button>
@@ -771,6 +785,7 @@
     <button class="sa-btn" id="sa-open-super" style="border-color:rgba(157,0,255,0.45);color:#cc88ff;background:rgba(80,0,160,0.18);">🔧 Superadmin Panel</button>
     <hr class="sa-sep">
     <button class="sa-btn" id="sa-logout" style="border-color:rgba(255,60,60,0.45);color:#ff8888;background:rgba(120,0,0,0.18);">🚪 Log Out</button>
+    </div><!-- /#snake-adm-controls -->
   </div>
 
   <!-- Superadmin overlay -->
@@ -2213,16 +2228,48 @@
     function adminLogout() {
       localStorage.removeItem(ADMIN_SESSION_KEY);
       sidebar.classList.remove('open');
+      document.getElementById('snake-admin-btn').textContent = '⚙ Admin';
       showToast('🚪 Logged out of Admin', '#ff8888');
     }
 
+    function refreshAdminSidebar() {
+      const loggedIn = isAdminSession();
+      document.getElementById('snake-adm-login').style.display    = loggedIn ? 'none'  : 'block';
+      document.getElementById('snake-adm-controls').style.display = loggedIn ? 'block' : 'none';
+    }
+
     document.getElementById('snake-admin-btn').addEventListener('click', () => {
-      if (isAdminSession()) {
-        sidebar.classList.toggle('open');
-      } else {
-        showToast('⛔ Access denied — please log in as Admin from the Hub first', '#ff5555');
+      refreshAdminSidebar();
+      sidebar.classList.toggle('open');
+      if (!isAdminSession()) {
+        setTimeout(() => {
+          const inp = document.getElementById('snake-adm-pw-input');
+          if (inp) { inp.value = ''; inp.focus(); }
+          document.getElementById('snake-adm-pw-msg').textContent = '';
+        }, 80);
       }
     });
+
+    document.getElementById('snake-adm-login-btn').addEventListener('click', () => {
+      const val = document.getElementById('snake-adm-pw-input').value;
+      const correct = localStorage.getItem('kq_adm_pw') || '4474';
+      if (val === correct) {
+        localStorage.setItem(ADMIN_SESSION_KEY, '1');
+        document.getElementById('snake-admin-btn').textContent = '✅ Admin';
+        refreshAdminSidebar();
+        showToast('✅ Logged in as Admin', '#55ee99');
+      } else {
+        document.getElementById('snake-adm-pw-msg').textContent = '❌ Wrong code';
+        document.getElementById('snake-adm-pw-input').value = '';
+      }
+    });
+
+    document.getElementById('snake-adm-pw-input').addEventListener('keydown', e => {
+      if (e.key === 'Enter') document.getElementById('snake-adm-login-btn').click();
+    });
+
+    // Update admin btn text on load
+    if (isAdminSession()) document.getElementById('snake-admin-btn').textContent = '✅ Admin';
 
     document.getElementById('sa-logout').addEventListener('click', adminLogout);
     document.getElementById('snake-admin-close').addEventListener('click', () => sidebar.classList.remove('open'));
