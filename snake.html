@@ -1980,10 +1980,14 @@
         ctx.lineCap     = 'round';
 
         // Tube connecting this segment to the next toward head
-        ctx.beginPath();
-        ctx.moveTo(pos.x, pos.y);
-        ctx.lineTo(posN.x, posN.y);
-        ctx.stroke();
+        // Skip tube if segments are on opposite sides of a wall-wrap
+        const tdx = Math.abs(posN.x - pos.x), tdy = Math.abs(posN.y - pos.y);
+        if (tdx < CELL * (COLS / 2) && tdy < CELL * (ROWS / 2)) {
+          ctx.beginPath();
+          ctx.moveTo(pos.x, pos.y);
+          ctx.lineTo(posN.x, posN.y);
+          ctx.stroke();
+        }
 
         // Filled circle at segment centre
         ctx.shadowBlur = 0;
