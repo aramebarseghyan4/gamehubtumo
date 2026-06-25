@@ -557,6 +557,39 @@
       background: rgba(20,140,70,0.18);
       box-shadow: 0 0 36px rgba(40,200,100,0.40), inset 0 0 20px rgba(30,180,80,0.08);
     }
+    .ctrl-card.selected.ai {
+      border-color: rgba(255,160,40,0.85);
+      background: rgba(120,60,10,0.22);
+      box-shadow: 0 0 36px rgba(255,140,0,0.40), inset 0 0 20px rgba(200,100,0,0.08);
+    }
+    .ctrl-card.selected.local {
+      border-color: rgba(160,80,255,0.85);
+      background: rgba(60,20,120,0.22);
+      box-shadow: 0 0 36px rgba(140,60,255,0.40), inset 0 0 20px rgba(100,40,200,0.08);
+    }
+    .ctrl-card.selected.network {
+      border-color: rgba(60,220,220,0.85);
+      background: rgba(10,80,100,0.22);
+      box-shadow: 0 0 36px rgba(0,200,220,0.40), inset 0 0 20px rgba(0,160,180,0.08);
+    }
+    .ctrl-card.ai     .ctrl-name { color: #ffaa40; }
+    .ctrl-card.local  .ctrl-name { color: #c080ff; }
+    .ctrl-card.network .ctrl-name { color: #40eeff; }
+    .ctrl-card.selected.ai     .ctrl-check { background: rgba(255,140,0,0.28); border-color: #ffaa40; color: #ffaa40; }
+    .ctrl-card.selected.local  .ctrl-check { background: rgba(140,60,255,0.28); border-color: #c080ff; color: #c080ff; }
+    .ctrl-card.selected.network .ctrl-check { background: rgba(0,200,220,0.28); border-color: #40eeff; color: #40eeff; }
+
+    .settings-section-label {
+      width: 100%;
+      text-align: left;
+      font-size: 0.62rem;
+      font-weight: 800;
+      letter-spacing: 0.18em;
+      color: #5a4080;
+      text-transform: uppercase;
+      padding-bottom: 2px;
+      border-bottom: 1px solid rgba(160,80,255,0.18);
+    }
     .ctrl-card .ctrl-icon { font-size: 3.2rem; transition: transform 0.22s; }
     .ctrl-card:hover .ctrl-icon, .ctrl-card.selected .ctrl-icon { transform: scale(1.14); }
     .ctrl-card .ctrl-name {
@@ -691,6 +724,7 @@
       <div class="settings-title">CONTROL SETTINGS</div>
       <div class="settings-sub">Choose how you want to play all games</div>
 
+      <div class="settings-section-label">🕹️ Controls</div>
       <div class="ctrl-cards">
         <div class="ctrl-card pc" id="ctrl-pc" onclick="selectCtrl('pc')">
           <div class="ctrl-icon">🖥️</div>
@@ -1120,7 +1154,6 @@
       if (!_selectedCtrl) return;
       localStorage.setItem(HUB_CTRL_KEY, _selectedCtrl);
       closeSettings();
-      // Brief flash on button to confirm
       const btn = document.getElementById('settings-hub-btn');
       btn.textContent = '✅ Saved!';
       btn.style.color = '#55ee99';
