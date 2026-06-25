@@ -27,24 +27,34 @@
       box-shadow:-6px 0 30px rgba(157,0,255,.7); border-left:3px solid rgba(190,70,255,.75);
     }
 
+    /* Hub button — top-left */
     #hub-btn {
-      position:fixed; top:8px; left:50%; transform:translateX(-50%);
-      z-index:200; background:rgba(70,0,160,.85); color:#d0aaff;
-      border:1.5px solid rgba(180,70,255,.6); border-radius:20px;
-      padding:5px 18px; font-family:'Orbitron',sans-serif; font-size:12px;
-      text-decoration:none; letter-spacing:1px; transition:.2s;
+      position:fixed; top:10px; left:calc(var(--pillar-w) + 10px);
+      z-index:200; background:rgba(40,0,100,.8); color:#c0a0ff;
+      border:1.5px solid rgba(160,70,255,.5); border-radius:12px;
+      padding:5px 16px; font-family:'Orbitron',sans-serif; font-size:11px;
+      text-decoration:none; letter-spacing:.08em; transition:.2s;
+      backdrop-filter:blur(10px);
     }
-    #hub-btn:hover { background:rgba(110,0,240,.95); color:#fff; }
+    #hub-btn:hover { background:rgba(90,0,220,.9); color:#fff; box-shadow:0 0 14px rgba(140,60,255,.4); }
 
     canvas { display:block; border-radius:8px; cursor:crosshair; }
 
-    /* Top HUD */
+    /* ── Top HUD pill ── */
     #hud {
-      position:fixed; top:38px; left:50%; transform:translateX(-50%);
-      z-index:150; display:flex; gap:20px; pointer-events:none;
-      font-family:'Orbitron',sans-serif; font-size:12px; color:#a080d0;
+      position:fixed; top:8px; left:50%; transform:translateX(-50%);
+      z-index:150; display:flex; align-items:stretch; gap:0; pointer-events:none;
+      background:rgba(6,2,18,.9);
+      border:1.5px solid rgba(150,65,255,.35);
+      border-radius:22px;
+      font-family:'Orbitron',sans-serif; font-size:9px; color:#5a4888;
+      backdrop-filter:blur(16px);
+      box-shadow:0 0 28px rgba(110,0,200,.18), inset 0 1px 0 rgba(220,160,255,.06);
+      overflow:hidden; white-space:nowrap;
     }
-    #hud b { color:#e0c8ff; }
+    .h-chip { display:flex; align-items:center; gap:6px; padding:9px 16px; }
+    .h-chip b { color:#cca8ff; font-size:12px; font-weight:900; letter-spacing:.02em; }
+    .h-sep { width:1px; background:rgba(150,70,255,.2); flex-shrink:0; }
 
     /* Drawing HUD — bottom bar */
     #draw-hud {
@@ -78,13 +88,24 @@
     #plat-count { white-space:nowrap; }
     #plat-count b { color:#e0c8ff; }
 
-    /* Mute button */
-    #mute-btn {
-      position:fixed; top:8px; left:calc(var(--pillar-w) + 10px);
+    /* Settings button — top-right, next to mute */
+    #sett-btn {
+      position:fixed; top:10px; right:calc(var(--pillar-w) + 56px);
       z-index:200; background:rgba(20,10,48,.85);
       border:1px solid rgba(160,80,255,.35); color:#8060c0;
       padding:4px 11px; min-height:32px; font-size:16px;
-      cursor:pointer; border-radius:8px; backdrop-filter:blur(10px);
+      cursor:pointer; border-radius:10px; backdrop-filter:blur(10px);
+      transition:background .18s, color .18s;
+    }
+    #sett-btn:hover { background:rgba(100,50,220,.28); color:#c0a0ff; }
+
+    /* Mute button — top-right */
+    #mute-btn {
+      position:fixed; top:10px; right:calc(var(--pillar-w) + 10px);
+      z-index:200; background:rgba(20,10,48,.85);
+      border:1px solid rgba(160,80,255,.35); color:#8060c0;
+      padding:4px 11px; min-height:32px; font-size:16px;
+      cursor:pointer; border-radius:10px; backdrop-filter:blur(10px);
       transition:background .18s, color .18s, border-color .18s;
       font-family:monospace; line-height:1;
     }
@@ -101,7 +122,7 @@
 
     /* ── Admin button ── */
     #admin-btn {
-      position:fixed; top:8px; right:calc(var(--pillar-w) + 10px);
+      position:fixed; top:10px; right:calc(var(--pillar-w) + 58px);
       z-index:200; background:rgba(20,10,48,.85);
       border:1px solid rgba(160,80,255,.35); color:#8060c0;
       padding:5px 14px; min-height:32px;
@@ -237,6 +258,34 @@
     #screen-clear     { display:none; }
     #screen-allclear  { display:none; }
     #screen-levelselect { display:none; }
+    #screen-settings  { display:none; }
+
+    /* ── Settings screen ── */
+    .sett-box {
+      background:rgba(7,3,20,.95); border:1.5px solid rgba(150,65,255,.38);
+      border-radius:22px; padding:32px 36px 28px; min-width:min(420px,92vw);
+      display:flex; flex-direction:column; gap:18px;
+      box-shadow:0 0 60px rgba(110,0,200,.28);
+      animation:admIn .25s cubic-bezier(.175,.885,.32,1.275) both;
+    }
+    .sett-title {
+      font-family:'Orbitron',sans-serif; font-size:1rem; font-weight:900;
+      letter-spacing:.14em; color:#c080ff; text-align:center;
+      text-shadow:0 0 18px rgba(180,80,255,.5);
+    }
+    .sett-row {
+      display:flex; align-items:center; justify-content:space-between;
+      gap:12px; flex-wrap:wrap;
+    }
+    .sett-label {
+      font-family:'Orbitron',sans-serif; font-size:.62rem; color:#6050a0;
+      letter-spacing:.07em; flex-shrink:0;
+    }
+    .sett-btns { display:flex; gap:6px; flex-wrap:wrap; }
+    .sett-divider {
+      height:1px;
+      background:linear-gradient(90deg,transparent,rgba(150,65,255,.25),transparent);
+    }
 
     /* Level select cards */
     #level-cards { display:flex; gap:14px; margin-bottom:18px; flex-wrap:wrap; justify-content:center; }
@@ -318,6 +367,8 @@
 
   <!-- Mute button -->
   <button id="mute-btn" title="Mute / Unmute (M)">🔊</button>
+  <!-- Settings button — always visible -->
+  <button id="sett-btn" title="Settings">⚙</button>
 
   <!-- Admin button (only visible when admin session is active) -->
   <button id="admin-btn">🔧 Admin</button>
@@ -370,10 +421,13 @@
   </div>
 
   <div id="hud">
-    SCORE <b id="h-score">0</b>
-    &nbsp; LEVEL <b id="h-level">1</b>
-    &nbsp; LIVES <b id="h-lives">♥♥♥</b>
-    &nbsp; COINS <b id="h-coins">0</b>
+    <div class="h-chip">SCO <b id="h-score">0</b></div>
+    <div class="h-sep"></div>
+    <div class="h-chip">LVL <b id="h-level">1</b></div>
+    <div class="h-sep"></div>
+    <div class="h-chip"><b id="h-lives">♥♥♥</b></div>
+    <div class="h-sep"></div>
+    <div class="h-chip">🪙 <b id="h-coins">0</b></div>
   </div>
 
   <!-- Drawing toolbar -->
@@ -466,14 +520,55 @@
     <h1>⚡ NEON RUSH</h1>
     <p style="margin-bottom:14px">Choose your mission</p>
     <div id="level-cards"></div>
-    <div class="sel-row">
-      DIFFICULTY&nbsp;
-      <div class="diff-btn" id="diff-0" tabindex="0">EASY</div>
-      <div class="diff-btn active" id="diff-1" tabindex="0">NORMAL</div>
-      <div class="diff-btn" id="diff-2" tabindex="0">HARD</div>
-    </div>
-    <div class="sel-row">
-      SKIN&nbsp;<span id="skin-slots"></span>
+    <button id="btn-settings" style="margin-top:6px;font-size:12px;padding:9px 28px">⚙ SETTINGS</button>
+  </div>
+
+  <!-- Dedicated settings screen -->
+  <div class="screen" id="screen-settings">
+    <div class="sett-box">
+      <div class="sett-title">⚙ SETTINGS</div>
+
+      <div class="sett-divider"></div>
+
+      <div class="sett-row">
+        <span class="sett-label">DIFFICULTY</span>
+        <div class="sett-btns">
+          <div class="diff-btn" id="diff-0" tabindex="0">EASY</div>
+          <div class="diff-btn active" id="diff-1" tabindex="0">NORMAL</div>
+          <div class="diff-btn" id="diff-2" tabindex="0">HARD</div>
+        </div>
+      </div>
+
+      <div class="sett-divider"></div>
+
+      <div class="sett-row">
+        <span class="sett-label">SKIN</span>
+        <div class="sett-btns"><span id="skin-slots"></span></div>
+      </div>
+
+      <div class="sett-divider"></div>
+
+      <div class="sett-row">
+        <span class="sett-label">MOBILE CONTROLS</span>
+        <div class="sett-btns">
+          <div class="diff-btn" id="tog-dpad-off" tabindex="0">OFF</div>
+          <div class="diff-btn" id="tog-dpad-on" tabindex="0">ON</div>
+        </div>
+      </div>
+
+      <div class="sett-divider"></div>
+
+      <div class="sett-row">
+        <span class="sett-label">SOUND</span>
+        <div class="sett-btns">
+          <div class="diff-btn" id="sett-sound-on" tabindex="0">ON</div>
+          <div class="diff-btn" id="sett-sound-off" tabindex="0">OFF</div>
+        </div>
+      </div>
+
+      <div class="sett-divider"></div>
+
+      <button id="btn-sett-back" style="margin-top:4px;font-size:12px;padding:9px 28px">← BACK</button>
     </div>
   </div>
 
@@ -570,7 +665,9 @@ class Camera {
     const ty=py-this.vh*0.65+vLook;   // 65% from top — 81: smooth easing already here
     this.x+=(tx-this.x)*7*dt;
     this.y+=(ty-this.y)*5.5*dt;
-    this.x=Math.max(0,Math.min(this.lvW-this.vw,this.x));
+    // center horizontally when level is narrower than viewport
+    if(this.lvW<=this.vw) this.x=(this.lvW-this.vw)/2;
+    else this.x=Math.max(0,Math.min(this.lvW-this.vw,this.x));
     this.y=Math.max(0,Math.min(this.lvH-this.vh,this.y));
   }
   scr(wx,wy){ return {x:wx-this.x+this._shX, y:wy-this.y+this._shY}; }
@@ -1309,7 +1406,9 @@ class Player {
 
     // platform carry
     if(this.onPlat){
-      this.x+=this.onPlat.dX; this.y+=this.onPlat.dY;
+      this.x+=this.onPlat.dX;
+      // dY only for downward motion — upward is already handled by _resolveY snap
+      if(this.onPlat.dY>0) this.y+=this.onPlat.dY;
       // conveyor push (point 47)
       if(this.onPlat.type==='conveyor'){
         const push=this.onPlat.conveyorDir*this.onPlat.conveyorSpd;
@@ -1795,7 +1894,10 @@ class Game {
     // Sync initial icon from persisted mute state
     if(sfx.muted){ _muteBtn.textContent='🔇'; _muteBtn.classList.add('muted'); }
 
-    document.getElementById('btn-play')  .onclick=()=>this._showLevelSelect();
+    document.getElementById('btn-play')    .onclick=()=>this._showLevelSelect();
+    document.getElementById('btn-settings').onclick=()=>this._showSettings();
+    document.getElementById('btn-sett-back').onclick=()=>this._settBack();
+    document.getElementById('sett-btn')    .onclick=()=>this._showSettings();
     document.getElementById('btn-retry') .onclick=()=>{ this.lives=3;this.score=0;this.coins=0;this._showLevelSelect(); };
     document.getElementById('btn-next')  .onclick=()=>this._loadLevel(this.lvIdx+1,false);
     document.getElementById('btn-again') .onclick=()=>{ this.lives=3;this.score=0;this.coins=0;this._showLevelSelect(); };
@@ -1809,24 +1911,15 @@ class Game {
     document.getElementById('btn-pause-quit')   .onclick=()=>{ this._unpause(); this.lives=3;this.score=0;this.coins=0;this._showLevelSelect(); };
     // 91 — clear drawn platforms button
     document.getElementById('btn-clear-plats').onclick=()=>this._clearAllPlats();
-    // Difficulty buttons
-    document.querySelectorAll('.diff-btn').forEach((b,i)=>{
-      const setDiff=()=>{
-        this._difficulty=i;
-        localStorage.setItem('nr_diff',i);
-        document.querySelectorAll('.diff-btn').forEach((x,j)=>x.classList.toggle('active',j===i));
-      };
-      b.addEventListener('click',setDiff);
-      b.addEventListener('keydown',e=>{ if(e.code==='Enter'||e.code==='Space'){ e.preventDefault(); setDiff(); } });
-    });
     // 90 — mobile d-pad
     this._setupDpad();
     // 85 — touch drawing
     this._setupTouchDrawing();
-    // Show d-pad on touch devices
-    if('ontouchstart' in window||navigator.maxTouchPoints>0){
-      document.getElementById('dpad').classList.add('visible');
-    }
+    // D-pad: default ON for real touch devices, OFF for desktop; user can override
+    this._dpadOn = localStorage.getItem('nr_dpad') !== null
+      ? localStorage.getItem('nr_dpad') === '1'
+      : window.matchMedia('(hover:none) and (pointer:coarse)').matches;
+    this._applyDpad();
   }
 
   _resize(){
@@ -1957,6 +2050,12 @@ class Game {
     this._screen(null);
   }
 
+  _applyDpad(){
+    document.getElementById('dpad').classList.toggle('visible', this._dpadOn);
+    document.getElementById('tog-dpad-on') .classList.toggle('active', this._dpadOn);
+    document.getElementById('tog-dpad-off').classList.toggle('active', !this._dpadOn);
+  }
+
   // 91 — wipe all drawn platforms
   _clearAllPlats(){
     this.drawnPlatforms=[];
@@ -2078,15 +2177,13 @@ class Game {
   }
 
   _screen(id){
-    ['screen-start','screen-over','screen-clear','screen-allclear','screen-levelselect','screen-pause']
+    ['screen-start','screen-over','screen-clear','screen-allclear','screen-levelselect','screen-pause','screen-settings']
       .forEach(s=>document.getElementById(s).style.display='none');
     if(id) document.getElementById(id).style.display='flex';
   }
 
   // ── Level select screen (feature 65) ──
   _showLevelSelect(){
-    // Sync difficulty buttons
-    document.querySelectorAll('.diff-btn').forEach((b,i)=>b.classList.toggle('active',i===this._difficulty));
     // Build level cards
     const container=document.getElementById('level-cards');
     container.innerHTML='';
@@ -2109,9 +2206,47 @@ class Game {
       }
       container.appendChild(card);
     });
-    // Build skin picker
-    this._renderSkinPicker();
     this._screen('screen-levelselect');
+  }
+
+  _settBack(){
+    if(this._settFrom==='playing') this._unpause();
+    else this._showLevelSelect();
+  }
+
+  _showSettings(){
+    this._settFrom=this.state;
+    if(this.state==='playing'){ this.state='paused'; sfx?.stopBG(); }
+    // Difficulty
+    document.querySelectorAll('.diff-btn[id^="diff-"]').forEach((b,i)=>b.classList.toggle('active',i===this._difficulty));
+    // Skin
+    this._renderSkinPicker();
+    // D-pad
+    this._applyDpad();
+    // Sound
+    const sOn=document.getElementById('sett-sound-on');
+    const sOff=document.getElementById('sett-sound-off');
+    const syncSound=()=>{
+      const m=sfx?.muted??false;
+      sOn .classList.toggle('active',!m);
+      sOff.classList.toggle('active', m);
+    };
+    syncSound();
+    sOn .onclick=()=>{ if(sfx?.muted) sfx.toggle(); syncSound(); };
+    sOff.onclick=()=>{ if(!sfx?.muted) sfx.toggle(); syncSound(); };
+    // Diff buttons
+    document.querySelectorAll('.diff-btn[id^="diff-"]').forEach((b,i)=>{
+      b.onclick=()=>{
+        this._difficulty=i;
+        localStorage.setItem('nr_diff',i);
+        document.querySelectorAll('.diff-btn[id^="diff-"]').forEach((x,j)=>x.classList.toggle('active',j===i));
+      };
+    });
+    // D-pad buttons
+    const setDpad=on=>{ this._dpadOn=on; localStorage.setItem('nr_dpad',on?'1':'0'); this._applyDpad(); };
+    document.getElementById('tog-dpad-on') .onclick=()=>setDpad(true);
+    document.getElementById('tog-dpad-off').onclick=()=>setDpad(false);
+    this._screen('screen-settings');
   }
 
   _renderSkinPicker(){
@@ -2162,7 +2297,8 @@ class Game {
     const lv=LEVELS[this.lvIdx];
     this.lvData=lv;
     this.cam.lvW=lv.lvW; this.cam.lvH=lv.lvH;
-    this.cam.x=Math.max(0,lv.spX-this.cam.vw/2);
+    // center narrow levels from the first frame
+    this.cam.x=lv.lvW<=this.cam.vw?(lv.lvW-this.cam.vw)/2:Math.max(0,lv.spX-this.cam.vw/2);
     this.cam.y=Math.max(0,lv.spY-this.cam.vh*.65);
 
     const diff=DIFF_MODES[this._difficulty];
@@ -2681,14 +2817,14 @@ class Game {
     ctx.font='bold 10px Orbitron,monospace';
     ctx.fillStyle='rgba(140,90,255,.4)';
     ctx.textAlign='right';ctx.textBaseline='top';
-    ctx.fillText(lv.name,W-8,4);
+    ctx.fillText(lv.name,W-8,52);
     ctx.restore();
 
     // 83 — height meter (top-left, 0m at bottom → ~1000m at top)
     if(this.player&&this.state==='playing'){
       const maxWH=this.lvData.lvH;
       const meters=Math.max(0,Math.min(9999,Math.round((maxWH-this.player.bottom)/maxWH*1000)));
-      const BAR_H=80, BAR_W=6, bx=8, by=50;
+      const BAR_H=80, BAR_W=6, bx=8, by=88;
       const frac=meters/1000;
       ctx.save();
       // bar background
@@ -2774,11 +2910,11 @@ class Game {
       ctx.textAlign='center';ctx.textBaseline='top';
       ctx.shadowColor=ahead?'#00ff88':'#c080ff';ctx.shadowBlur=10;
       ctx.fillStyle=ahead?'#80ffbb':'rgba(190,150,255,.85)';
-      ctx.fillText(timeStr,W/2,4);
+      ctx.fillText(timeStr,W/2,52);
       if(isFinite(best)){
         ctx.font='bold 9px Orbitron,monospace';
         ctx.fillStyle='rgba(140,100,200,.55)';ctx.shadowBlur=0;
-        ctx.fillText('BEST '+this._fmtTime(best),W/2,20);
+        ctx.fillText('BEST '+this._fmtTime(best),W/2,68);
       }
       // combo tier indicator (point 52)
       if(this._comboTimer>0&&this._combo>=3){
@@ -2788,7 +2924,7 @@ class Game {
         ctx.font=`bold ${11+mult}px Orbitron,monospace`;
         ctx.fillStyle='#ffd700';ctx.shadowColor='#ff8800';ctx.shadowBlur=14;
         ctx.textAlign='left';
-        ctx.fillText(`×${mult} COMBO`,8,4);
+        ctx.fillText(`×${mult} COMBO`,8,52);
         ctx.restore();
       }
       ctx.restore();
@@ -2816,10 +2952,10 @@ class Game {
         ctx.save();
         ctx.fillStyle='#ff3300'; ctx.shadowColor='#ff3300'; ctx.shadowBlur=20;
         ctx.font='bold 16px monospace'; ctx.textAlign='center'; ctx.textBaseline='top';
-        ctx.fillText('▼',sx,6);
+        ctx.fillText('▼',sx,52);
         ctx.shadowBlur=0; ctx.globalAlpha=.55;
         ctx.font='bold 9px Orbitron,monospace';
-        ctx.fillText('ROCK',sx,24);
+        ctx.fillText('ROCK',sx,70);
         ctx.restore();
       }
     }
@@ -2873,11 +3009,9 @@ class Game {
     ctx.strokeStyle=frameCol; ctx.lineWidth=4;
     ctx.strokeRect(sx,sy,W,H);
 
-    // ── door body fill ──
     const bg=reached?'rgba(0,180,80,.22)':'rgba(100,80,0,.18)';
     ctx.fillStyle=bg; ctx.fillRect(sx+2,sy+2,W-4,H-4);
 
-    // ── inner panel (inset rectangle) ──
     const pad=9;
     ctx.shadowBlur=0;
     ctx.strokeStyle=frameCol; ctx.lineWidth=1.8; ctx.globalAlpha=.55;
