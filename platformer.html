@@ -464,19 +464,33 @@ class Camera {
   constructor(){
     this.x=0; this.y=0; this.vw=800; this.vh=600;
     this.lvW=1000; this.lvH=5800; this._ld=0;
+    // 75 — screen shake
+    this._shAmp=0; this._shDur=0; this._shT=0; this._shX=0; this._shY=0;
+  }
+  // 75 — trigger shake; higher amp overwrites lower
+  shake(amp,dur){
+    if(amp>=this._shAmp){ this._shAmp=amp; this._shDur=dur; this._shT=0; }
+  }
+  updateShake(dt){
+    if(this._shAmp<=0) return;
+    this._shT=Math.min(this._shDur,this._shT+dt);
+    const pct=1-this._shT/this._shDur;
+    this._shX=(Math.random()-.5)*2*this._shAmp*pct;
+    this._shY=(Math.random()-.5)*2*this._shAmp*pct;
+    if(pct<=0){ this._shAmp=0; this._shX=0; this._shY=0; }
   }
   follow(px,py,pvx,pvy,dt){
     const ld=pvx>30?1:pvx<-30?-1:this._ld;
     this._ld+=(ld-this._ld)*6*dt;
     const tx=px-this.vw*0.5+this._ld*80;
     const vLook=Math.max(-80,Math.min(40,pvy*0.06));
-    const ty=py-this.vh*0.65+vLook;   // 65% from top
+    const ty=py-this.vh*0.65+vLook;   // 65% from top — 81: smooth easing already here
     this.x+=(tx-this.x)*7*dt;
     this.y+=(ty-this.y)*5.5*dt;
     this.x=Math.max(0,Math.min(this.lvW-this.vw,this.x));
     this.y=Math.max(0,Math.min(this.lvH-this.vh,this.y));
   }
-  scr(wx,wy){ return {x:wx-this.x, y:wy-this.y}; }
+  scr(wx,wy){ return {x:wx-this.x+this._shX, y:wy-this.y+this._shY}; }
   toWorld(sx,sy){ return {x:sx+this.x, y:sy+this.y}; }
   inView(wx,wy,ww,wh){
     return wx+ww>this.x&&wx<this.x+this.vw&&wy+wh>this.y&&wy<this.y+this.vh;
@@ -1227,13 +1241,28 @@ class Player {
 
     if(!wasGnd&&this.onGround&&this.onPlat?.type!=='bounce'){
       const spd=Math.abs(this._lastLandVY);
-      const sq=Math.min(.3,spd/4500);
-      this._sqY=1-sq;this._sqX=1+sq*.6;
+      // 77 — squash on land proportional to fall speed
+      const sq=Math.min(.38,spd/3800);
+      this._sqY=1-sq;this._sqX=1+sq*.7;
       sfx?.land(spd);
-      for(let i=0;i<8;i++){
+      // 75 — screen shake on hard landing
+      if(spd>380&&typeof game!=='undefined') game.cam.shake(Math.min(10,spd/120),.22);
+      // 76 — dust puff on landing (wider spread)
+      const dustN=4+Math.floor(spd/220);
+      for(let i=0;i<dustN;i++){
+        const side=i%2===0?-1:1;
         particles.push(new Particle(
-          this.cx+(Math.random()-.5)*10,this.bottom,
-          (Math.random()-.5)*140,-Math.random()*60-8,'#9060e0',.28+Math.random()*.18,2+Math.random()*1.8));
+          this.cx+side*(6+Math.random()*10),this.bottom,
+          side*(50+Math.random()*110),-(12+Math.random()*38),
+          i%2===0?'#c0a8e8':'#ffffff',
+          .2+Math.random()*.16, 1.4+Math.random()*1.6));
+      }
+      // central puff
+      for(let i=0;i<4;i++){
+        particles.push(new Particle(
+          this.cx+(Math.random()-.5)*8,this.bottom,
+          (Math.random()-.5)*40,-Math.random()*25,
+          '#e0d0ff',.16+Math.random()*.1,1.2+Math.random()));
       }
     }
 
@@ -1262,11 +1291,17 @@ class Player {
         particles.push(new Particle(this.cx,this.cy,Math.cos(a)*110,Math.sin(a)*110,'#c080ff',.3,3));
       }
     } else {
+      // 77 — stretch on jump
       this.jumpsLeft=MAX_JUMPS-1;
-      this._sqY=1.32;this._sqX=.74;
-      for(let i=0;i<6;i++){
-        particles.push(new Particle(this.cx+(Math.random()-.5)*10,this.bottom,
-          (Math.random()-.5)*80,-Math.random()*45,'#7040b0',.2,2));
+      this._sqY=1.38;this._sqX=.68;
+      // 76 — dust puff on takeoff
+      for(let i=0;i<14;i++){
+        const a=Math.PI+Math.PI*(Math.random()-.5)*.9;
+        particles.push(new Particle(
+          this.cx+(Math.random()-.5)*14,this.bottom,
+          Math.cos(a)*(60+Math.random()*80),Math.sin(a)*(40+Math.random()*50),
+          i%3===0?'#c8a8ff':i%3===1?'#ffffff':'#9060e0',
+          .22+Math.random()*.14, 1.6+Math.random()*1.4));
       }
     }
   }
@@ -1644,6 +1679,8 @@ class Game {
     this.spikes=[]; this.enemies=[]; this.projectiles=[]; this.windZones=[];
     // Checkpoints (feature 63)
     this.checkpointObjs=[]; this._cpX=0; this._cpY=0; this._cpFlash=0;
+    // Polish (75, 78, 79, 80)
+    this._deathFlash=0; this._coinSparks=[]; this._confetti=[];
     this._deathTimer=0; this._goalPulse=0;
     this._goalReached=false; this._winMsgTimer=0;
 
@@ -1967,7 +2004,7 @@ class Game {
     this.windZones=(lv.windZones||[]).map(z=>new WindZone(z.x,z.y,z.w,z.h,z.dir,z.force));
     this.projectiles=[];
     // Feature 63: checkpoints
-    this.checkpointObjs=(lv.checkpoints||[]).map(c=>new CheckPoint(c.x,c.y));
+    this.checkpointObjs=lv.lava?[]:(lv.checkpoints||[]).map(c=>new CheckPoint(c.x,c.y));
     this._cpX=lv.spX; this._cpY=lv.spY; this._cpFlash=0;
     this.player=new Player(lv.spX,lv.spY);
     this.particles=[];
@@ -2019,6 +2056,11 @@ class Game {
     if(this.state!=='playing') return;
     dt=Math.min(dt,.05);
     this._goalPulse+=dt*2.2;
+    this.cam.updateShake(dt);
+    // 78 coin sparks, 79 confetti, 80 death flash
+    this._coinSparks=this._coinSparks.filter(s=>{ s.life-=dt; return s.life>0; });
+    this._confetti=this._confetti.filter(c=>{ c.life-=dt; return c.life>0; });
+    if(this._deathFlash>0) this._deathFlash-=dt;
 
     // speedrun timer — ticks while alive, stops when goal reached (point 53)
     if(!this._goalReached) this._levelTime+=dt;
@@ -2059,6 +2101,21 @@ class Game {
       if(!this.player.dead&&this._hitGoal()&&!this._goalReached){
         this._goalReached=true; this._winMsgTimer=1.6;
         sfx?.win(); sfx?.stopBG();
+        // 79 — win confetti burst
+        const g=this.lvData.goal;
+        const confCols=['#ffd700','#ff60cc','#60d8ff','#80ff80','#ff9040','#c080ff','#ffffff'];
+        for(let i=0;i<80;i++){
+          const a=Math.random()*Math.PI*2, sp=180+Math.random()*320;
+          const col=confCols[i%confCols.length];
+          this._confetti.push({
+            wx:g.x+g.w/2+(Math.random()-.5)*g.w, wy:g.y+g.h/2,
+            vx:Math.cos(a)*sp, vy:Math.sin(a)*sp-120,
+            life:1.4+Math.random()*.8, maxLife:1.4+Math.random()*.8,
+            col, r:2.5+Math.random()*3.5
+          });
+        }
+        // Shake on win
+        this.cam.shake(7,.35);
         setTimeout(()=>this._levelClear(), 1600);
       }
       if(this._winMsgTimer>0) this._winMsgTimer-=dt;
@@ -2068,6 +2125,9 @@ class Game {
         if(c.test(this.player.cx,this.player.cy,this.player.w,this.player.h,t)){
           c.collected=true; this.coins++;
           sfx?.coin(c.type);
+          // 78 — coin sparkle ring
+          const scol=c.type==='secret'?'#e0c0ff':c.type==='gem'?'#00ffcc':'#ffd700';
+          this._coinSparks.push({wx:c.wx,wy:c.wy_anim(t),life:0.55,maxLife:0.55,color:scol});
 
           // combo multiplier (point 52)
           this._combo++; this._comboTimer=2.8; this._lvCoins++;
@@ -2201,6 +2261,9 @@ class Game {
       const a=Math.random()*Math.PI*2,sp=150+Math.random()*200;
       this.particles.push(new Particle(pl.cx,pl.cy,Math.cos(a)*sp,Math.sin(a)*sp,'#ff50a0',.5+Math.random()*.3,4));
     }
+    // 80 — death flash; 75 — death shake
+    this._deathFlash=0.55;
+    this.cam.shake(13,.3);
     this.player.dead=true;
     if(this.lives<=0){
       this.state='gameover';
@@ -2345,8 +2408,75 @@ class Game {
 
     this._drawGoal(ctx,cam,t);
     this.coinObjs.forEach(c=>c.draw(ctx,cam,t));
+
+    // 78 — coin sparkle rings
+    this._coinSparks.forEach(s=>{
+      const pct=s.life/s.maxLife;
+      const sp=cam.scr(s.wx,s.wy);
+      const r=18+22*(1-pct);
+      ctx.save();
+      ctx.strokeStyle=s.color;
+      ctx.globalAlpha=pct*.85;
+      ctx.lineWidth=2.5*pct;
+      ctx.beginPath(); ctx.arc(sp.x,sp.y,r,0,Math.PI*2); ctx.stroke();
+      ctx.globalAlpha=pct*.45;
+      ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.arc(sp.x,sp.y,r*.6,0,Math.PI*2); ctx.stroke();
+      ctx.restore();
+    });
+
     this.particles.forEach(p=>p.draw(ctx,cam));
+
+    // 82 — player shadow (faint ellipse showing height above platform)
+    if(this.player){
+      const pl=this.player;
+      const allPlats=[...this.platforms,...(this.drawnPlatforms||[])];
+      let nearestDist=Infinity;
+      allPlats.forEach(p=>{
+        const dist=p.y-pl.bottom;
+        if(pl.cx>=p.x&&pl.cx<=p.x+p.w&&dist>0&&dist<nearestDist) nearestDist=dist;
+      });
+      if(nearestDist<320){
+        const shadowY=pl.bottom+nearestDist;
+        const sp=cam.scr(pl.cx,shadowY);
+        const fade=1-nearestDist/320;
+        ctx.save();
+        ctx.globalAlpha=0.38*fade;
+        ctx.fillStyle='#000';
+        ctx.beginPath();
+        ctx.ellipse(sp.x,sp.y,18*fade+4,5*fade+2,0,0,Math.PI*2);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
     if(this.player) this.player.draw(ctx,cam);
+
+    // 79 — confetti draw + gravity physics
+    {
+      const cdt=1/60;
+      this._confetti.forEach(c=>{
+        c.wx+=c.vx*cdt; c.wy+=c.vy*cdt; c.vx*=0.985; c.vy+=200*cdt;
+        const sp=cam.scr(c.wx,c.wy);
+        const pct=c.life/c.maxLife;
+        ctx.save();
+        ctx.globalAlpha=Math.min(1,pct*2)*.9;
+        ctx.fillStyle=c.col;
+        ctx.translate(sp.x,sp.y);
+        ctx.rotate(c.wx*.04+c.wy*.02);
+        ctx.fillRect(-c.r,-c.r*.5,c.r*2,c.r);
+        ctx.restore();
+      });
+    }
+
+    // 80 — death flash full-screen red overlay
+    if(this._deathFlash>0){
+      ctx.save();
+      ctx.globalAlpha=Math.min(1,this._deathFlash)*0.7;
+      ctx.fillStyle='#ff1020';
+      ctx.fillRect(0,0,W,H);
+      ctx.restore();
+    }
 
     // level name
     ctx.save();
