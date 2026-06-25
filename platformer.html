@@ -135,6 +135,7 @@
       animation:admIn .3s cubic-bezier(.175,.885,.32,1.275) both;
     }
     @keyframes admIn { from{transform:scale(.9);opacity:0} to{transform:scale(1);opacity:1} }
+    @keyframes blink  { 0%,100%{opacity:.45} 50%{opacity:.15} }
     .adm-box::before {
       content:''; position:absolute; top:0; left:12%; right:12%; height:1px;
       background:linear-gradient(90deg,transparent,rgba(255,215,0,.7),rgba(255,255,255,.5),rgba(255,215,0,.7),transparent);
@@ -271,6 +272,45 @@
     .skin-dot:hover { transform:scale(1.15); }
     .skin-dot.active { border-color:#fff; transform:scale(1.22); }
     .skin-dot.skin-locked { opacity:.22; cursor:not-allowed; filter:grayscale(1); box-shadow:none; }
+
+    /* ── 86 Pause screen ── */
+    #screen-pause { display:none; }
+    #screen-pause .pause-box {
+      display:flex; flex-direction:column; align-items:center; gap:12px;
+      background:rgba(8,3,24,.92); border:2px solid rgba(160,80,255,.45);
+      border-radius:22px; padding:36px 48px; min-width:260px;
+      box-shadow:0 0 60px rgba(120,0,220,.4);
+      animation:admIn .22s cubic-bezier(.175,.885,.32,1.275) both;
+    }
+
+    /* ── 84 Controls HUD ── */
+    #ctrl-hud {
+      position:fixed; bottom:58px; left:50%; transform:translateX(-50%);
+      z-index:148; display:none; align-items:center; gap:10px;
+      background:rgba(5,2,18,.72); border:1px solid rgba(120,60,200,.22);
+      border-radius:10px; padding:5px 14px;
+      font-family:'Orbitron',sans-serif; font-size:9px; color:rgba(140,100,200,.6);
+      pointer-events:none; white-space:nowrap;
+    }
+    #ctrl-hud.visible { display:flex; }
+
+    /* ── 90 Mobile D-pad ── */
+    #dpad {
+      position:fixed; bottom:16px; left:0; right:0; z-index:160; display:none;
+    }
+    #dpad.visible { display:flex; justify-content:space-between; align-items:flex-end; padding:0 calc(var(--pillar-w) + 8px) 0 calc(var(--pillar-w) + 8px); }
+    .dp-group { display:flex; gap:8px; align-items:flex-end; }
+    .dp-btn {
+      width:52px; height:52px; border-radius:50%;
+      background:rgba(70,15,160,.62); border:2px solid rgba(150,70,255,.55);
+      color:#c0a0ff; font-size:22px; display:flex; align-items:center;
+      justify-content:center; cursor:pointer; user-select:none;
+      -webkit-user-select:none; touch-action:none; transition:background .08s;
+      backdrop-filter:blur(4px); pointer-events:all;
+    }
+    .dp-btn.active { background:rgba(140,40,255,.82); color:#fff; border-color:rgba(220,140,255,.85); }
+    .dp-btn.dp-jump { width:60px; height:60px; font-size:24px; background:rgba(120,0,240,.62); }
+    .dp-btn.dp-dash { width:44px; height:44px; font-size:15px; }
   </style>
 </head>
 <body>
@@ -342,12 +382,36 @@
       INK&nbsp;<div id="ink-bar"><div id="ink-fill"></div></div>
     </div>
     <div id="color-row"></div>
+    <!-- 92 platform count -->
     <div id="plat-count">PLATS <b id="pc">0</b>/5</div>
+    <!-- 91 clear platforms button -->
+    <button id="btn-clear-plats" title="Clear all drawn platforms" style="
+      background:rgba(120,0,0,.6);border:1px solid rgba(255,60,60,.4);
+      color:#ff9090;border-radius:7px;padding:3px 10px;
+      font-family:'Orbitron',sans-serif;font-size:9px;cursor:pointer;white-space:nowrap;
+    ">✕ CLEAR</button>
+  </div>
+  <!-- 84 controls hint strip -->
+  <div id="ctrl-hud">
+    ←→ Move &nbsp;|&nbsp; Space Jump &nbsp;|&nbsp; X Dash &nbsp;|&nbsp; Shift Sprint &nbsp;|&nbsp; Draw w/ mouse &nbsp;|&nbsp; Esc Pause
   </div>
   <div id="undo-hint">Ctrl+Z — undo &nbsp;|&nbsp; Right-click — erase</div>
 
   <canvas id="gc"></canvas>
 
+  <!-- 90 mobile d-pad -->
+  <div id="dpad">
+    <div class="dp-group">
+      <div class="dp-btn" id="dp-left">◀</div>
+      <div class="dp-btn" id="dp-right">▶</div>
+    </div>
+    <div class="dp-group">
+      <div class="dp-btn dp-dash" id="dp-dash">X</div>
+      <div class="dp-btn dp-jump" id="dp-jump">▲</div>
+    </div>
+  </div>
+
+  <!-- 87 start screen with press-space hint -->
   <div class="screen" id="screen-start">
     <h1>⚡ NEON RUSH</h1>
     <p>
@@ -362,6 +426,7 @@
       <span style="color:#c080ff">✏ Draw platforms with mouse &nbsp;|&nbsp; Right-click — erase</span>
     </p>
     <button id="btn-play">PLAY</button>
+    <p style="margin-top:12px;margin-bottom:0;font-size:10px;color:rgba(160,110,255,.45);animation:blink 1.4s infinite">PRESS SPACE TO START</p>
   </div>
 
   <div class="screen" id="screen-over">
@@ -370,16 +435,31 @@
     <button id="btn-retry">RETRY</button>
   </div>
 
+  <!-- 88 win screen — time, coins, stars, replay -->
   <div class="screen" id="screen-clear">
     <h1>LEVEL CLEAR!</h1>
     <p id="clear-msg"></p>
     <button id="btn-next">NEXT LEVEL</button>
+    <button id="btn-replay-clear">REPLAY</button>
+    <button id="btn-ls-clear" style="font-size:11px;padding:8px 20px">LEVEL SELECT</button>
   </div>
 
   <div class="screen" id="screen-allclear">
     <h1>YOU WIN! 🏆</h1>
     <p id="allclear-msg"></p>
     <button id="btn-again">PLAY AGAIN</button>
+    <button id="btn-replay-all">REPLAY</button>
+  </div>
+
+  <!-- 86 pause menu -->
+  <div class="screen" id="screen-pause">
+    <div class="pause-box">
+      <h1 style="font-size:clamp(20px,4vw,36px);margin-bottom:4px">PAUSED</h1>
+      <p style="margin-bottom:8px;font-size:11px;color:rgba(160,110,200,.6)">ESC to resume</p>
+      <button id="btn-resume">RESUME</button>
+      <button id="btn-pause-restart">RESTART</button>
+      <button id="btn-pause-quit" style="font-size:11px;padding:8px 20px">QUIT TO MENU</button>
+    </div>
   </div>
 
   <div class="screen" id="screen-levelselect" style="overflow-y:auto;padding:20px 10px;">
@@ -437,7 +517,7 @@ const DRAW_MIN    = 30;     // minimum length to register (point 24)
 // ═══════════════════════════════════════════════
 class Input {
   constructor(){
-    this._h={}; this._p={};
+    this._h={}; this._p={}; this._v={}; this._vp={};
     window.addEventListener('keydown',e=>{
       if(!this._h[e.code]) this._p[e.code]=true;
       this._h[e.code]=true;
@@ -445,9 +525,12 @@ class Input {
     });
     window.addEventListener('keyup',e=>{ this._h[e.code]=false; });
   }
-  held(c)   { return !!this._h[c]; }
-  pressed(c){ return !!this._p[c]; }
-  flush()   { this._p={}; }
+  // 90 — virtual key injection from d-pad
+  vdown(c){ if(!this._v[c]) this._vp[c]=true; this._v[c]=true; }
+  vup(c)  { this._v[c]=false; }
+  held(c)   { return !!this._h[c]||!!this._v[c]; }
+  pressed(c){ return !!this._p[c]||!!this._vp[c]; }
+  flush()   { this._p={}; this._vp={}; }
   get left()        { return this.held('ArrowLeft') ||this.held('KeyA'); }
   get right()       { return this.held('ArrowRight')||this.held('KeyD'); }
   get sprint()      { return this.held('ShiftLeft') ||this.held('ShiftRight'); }
@@ -1716,6 +1799,16 @@ class Game {
     document.getElementById('btn-retry') .onclick=()=>{ this.lives=3;this.score=0;this.coins=0;this._showLevelSelect(); };
     document.getElementById('btn-next')  .onclick=()=>this._loadLevel(this.lvIdx+1,false);
     document.getElementById('btn-again') .onclick=()=>{ this.lives=3;this.score=0;this.coins=0;this._showLevelSelect(); };
+    // 88 — replay + level-select from win screen
+    document.getElementById('btn-replay-clear').onclick=()=>{ this.lives=3;this.score=0;this.coins=0;this._loadLevel(this.lvIdx,false); };
+    document.getElementById('btn-ls-clear')    .onclick=()=>{ this.lives=3;this.score=0;this.coins=0;this._showLevelSelect(); };
+    document.getElementById('btn-replay-all')  .onclick=()=>{ this.lives=3;this.score=0;this.coins=0;this._loadLevel(this.lvIdx,false); };
+    // 86 — pause menu
+    document.getElementById('btn-resume')       .onclick=()=>this._togglePause();
+    document.getElementById('btn-pause-restart').onclick=()=>{ this._unpause(); this.lives=3;this.score=0;this.coins=0;this._loadLevel(this.lvIdx,false); };
+    document.getElementById('btn-pause-quit')   .onclick=()=>{ this._unpause(); this.lives=3;this.score=0;this.coins=0;this._showLevelSelect(); };
+    // 91 — clear drawn platforms button
+    document.getElementById('btn-clear-plats').onclick=()=>this._clearAllPlats();
     // Difficulty buttons
     document.querySelectorAll('.diff-btn').forEach((b,i)=>{
       const setDiff=()=>{
@@ -1726,6 +1819,14 @@ class Game {
       b.addEventListener('click',setDiff);
       b.addEventListener('keydown',e=>{ if(e.code==='Enter'||e.code==='Space'){ e.preventDefault(); setDiff(); } });
     });
+    // 90 — mobile d-pad
+    this._setupDpad();
+    // 85 — touch drawing
+    this._setupTouchDrawing();
+    // Show d-pad on touch devices
+    if('ontouchstart' in window||navigator.maxTouchPoints>0){
+      document.getElementById('dpad').classList.add('visible');
+    }
   }
 
   _resize(){
@@ -1811,7 +1912,7 @@ class Game {
     canvas.addEventListener('contextmenu',e=>e.preventDefault());
   }
 
-  // ── Ctrl+Z undo — point 29; M key mute — feature 74 ──
+  // ── Ctrl+Z undo — point 29; M key mute — 74; Esc pause — 86; Space start — 87 ──
   _setupKeyBindings(){
     window.addEventListener('keydown',e=>{
       if((e.ctrlKey||e.metaKey)&&e.code==='KeyZ'){
@@ -1820,6 +1921,17 @@ class Game {
       if(e.code==='KeyM'&&!e.ctrlKey&&!e.metaKey){
         this._toggleMute();
       }
+      // 86 — pause toggle
+      if(e.code==='Escape'){
+        e.preventDefault();
+        if(this.state==='playing') this._togglePause();
+        else if(this.state==='paused') this._togglePause();
+      }
+      // 87 — Space on start screen
+      if(e.code==='Space'&&this.state==='start'){
+        e.preventDefault();
+        this._showLevelSelect();
+      }
     });
   }
 
@@ -1827,6 +1939,90 @@ class Game {
     const muted=sfx?.toggle()??false;
     const btn=document.getElementById('mute-btn');
     if(btn){ btn.textContent=muted?'🔇':'🔊'; btn.classList.toggle('muted',muted); }
+  }
+
+  // 86 — pause / resume
+  _togglePause(){
+    if(this.state==='playing'){
+      this.state='paused';
+      sfx?.stopBG();
+      this._screen('screen-pause');
+    } else if(this.state==='paused'){
+      this._unpause();
+    }
+  }
+  _unpause(){
+    this.state='playing';
+    sfx?.startBG();
+    this._screen(null);
+  }
+
+  // 91 — wipe all drawn platforms
+  _clearAllPlats(){
+    this.drawnPlatforms=[];
+    this._undoStack=[];
+    this._inkUsed=0;
+    this._updateDrawHUD();
+  }
+
+  // 90 — mobile d-pad: inject virtual keys
+  _setupDpad(){
+    const map={
+      'dp-left' :['ArrowLeft'],
+      'dp-right':['ArrowRight'],
+      'dp-jump' :['Space'],
+      'dp-dash' :['KeyX'],
+    };
+    Object.entries(map).forEach(([id,codes])=>{
+      const el=document.getElementById(id);
+      if(!el) return;
+      const down=e=>{
+        e.preventDefault();
+        el.classList.add('active');
+        codes.forEach(c=>this.inp.vdown(c));
+      };
+      const up=e=>{
+        el.classList.remove('active');
+        codes.forEach(c=>this.inp.vup(c));
+      };
+      el.addEventListener('pointerdown',down);
+      el.addEventListener('pointerup',  up);
+      el.addEventListener('pointerleave',up);
+      el.addEventListener('pointercancel',up);
+    });
+  }
+
+  // 85 — touch drawing support
+  _setupTouchDrawing(){
+    const canvas=this.canvas;
+    const getWorld=touch=>{
+      const rect=canvas.getBoundingClientRect();
+      return {x:touch.clientX-rect.left+this.cam.x, y:touch.clientY-rect.top+this.cam.y};
+    };
+    canvas.addEventListener('touchstart',e=>{
+      if(this.state!=='playing') return;
+      // only if touch starts on canvas and not on d-pad zone
+      const touch=e.changedTouches[0];
+      const rect=canvas.getBoundingClientRect();
+      if(touch.clientY<rect.top||touch.clientX<rect.left||touch.clientX>rect.right) return;
+      e.preventDefault();
+      const w=getWorld(touch);
+      this._drawing=true;
+      this._drawStart={x:w.x,y:w.y};
+      this._drawEnd  ={x:w.x,y:w.y};
+    },{passive:false});
+    canvas.addEventListener('touchmove',e=>{
+      if(!this._drawing) return;
+      e.preventDefault();
+      const w=getWorld(e.changedTouches[0]);
+      this._drawEnd={x:w.x,y:w.y};
+    },{passive:false});
+    canvas.addEventListener('touchend',e=>{
+      if(!this._drawing) return;
+      e.preventDefault();
+      this._drawing=false;
+      this._finalizeDraw();
+    },{passive:false});
   }
 
   // ── point 23: finalize drawn platform ──
@@ -1882,7 +2078,7 @@ class Game {
   }
 
   _screen(id){
-    ['screen-start','screen-over','screen-clear','screen-allclear','screen-levelselect']
+    ['screen-start','screen-over','screen-clear','screen-allclear','screen-levelselect','screen-pause']
       .forEach(s=>document.getElementById(s).style.display='none');
     if(id) document.getElementById(id).style.display='flex';
   }
@@ -2023,6 +2219,7 @@ class Game {
     this.state='playing';
     document.getElementById('draw-hud').classList.add('visible');
     document.getElementById('undo-hint').classList.add('visible');
+    document.getElementById('ctrl-hud').classList.add('visible');
     this._hud();
     sfx?.startBG();
   }
@@ -2053,6 +2250,7 @@ class Game {
   }
 
   update(dt){
+    if(this.state==='paused') return;
     if(this.state!=='playing') return;
     dt=Math.min(dt,.05);
     this._goalPulse+=dt*2.2;
@@ -2485,6 +2683,86 @@ class Game {
     ctx.textAlign='right';ctx.textBaseline='top';
     ctx.fillText(lv.name,W-8,4);
     ctx.restore();
+
+    // 83 — height meter (top-left, 0m at bottom → ~1000m at top)
+    if(this.player&&this.state==='playing'){
+      const maxWH=this.lvData.lvH;
+      const meters=Math.max(0,Math.min(9999,Math.round((maxWH-this.player.bottom)/maxWH*1000)));
+      const BAR_H=80, BAR_W=6, bx=8, by=50;
+      const frac=meters/1000;
+      ctx.save();
+      // bar background
+      ctx.globalAlpha=.5;
+      ctx.fillStyle='rgba(60,20,120,.55)';
+      ctx.fillRect(bx-1,by-1,BAR_W+2,BAR_H+2);
+      // bar fill
+      ctx.globalAlpha=.9;
+      const barGrad=ctx.createLinearGradient(0,by+BAR_H,0,by);
+      barGrad.addColorStop(0,'#8040ff');
+      barGrad.addColorStop(1,'#00ffcc');
+      ctx.fillStyle=barGrad;
+      ctx.fillRect(bx,by+BAR_H*(1-frac),BAR_W,BAR_H*frac);
+      // text
+      ctx.globalAlpha=.85;
+      ctx.font='bold 9px Orbitron,monospace';
+      ctx.fillStyle='#b090ff';
+      ctx.textAlign='left'; ctx.textBaseline='top';
+      ctx.shadowColor='#8040ff'; ctx.shadowBlur=6;
+      ctx.fillText(meters+'m',bx+BAR_W+4,by+BAR_H/2-5);
+      ctx.restore();
+    }
+
+    // 89 — minimap (bottom-right corner)
+    if(this.lvData&&(this.state==='playing'||this.state==='paused')){
+      const MM_W=90, MM_H=60, MM_PAD=8;
+      const mx=W-MM_W-MM_PAD, my=H-MM_H-MM_PAD;
+      const lvW=this.lvData.lvW, lvH=this.lvData.lvH;
+      const sx=v=>mx+v/lvW*MM_W, sy=v=>my+v/lvH*MM_H;
+      ctx.save();
+      // background
+      ctx.globalAlpha=.68;
+      ctx.fillStyle='rgba(4,2,16,.82)';
+      ctx.strokeStyle='rgba(130,60,220,.45)'; ctx.lineWidth=1;
+      ctx.fillRect(mx-2,my-2,MM_W+4,MM_H+4);
+      ctx.strokeRect(mx-2,my-2,MM_W+4,MM_H+4);
+      // camera viewport rect
+      ctx.globalAlpha=.2;
+      ctx.fillStyle='rgba(160,100,255,.35)';
+      ctx.fillRect(sx(this.cam.x),sy(this.cam.y),this.cam.vw/lvW*MM_W,this.cam.vh/lvH*MM_H);
+      // platforms
+      ctx.globalAlpha=.6;
+      ctx.fillStyle='#7050c0';
+      this.platforms.forEach(p=>{
+        const pw=Math.max(1,p.w/lvW*MM_W);
+        const ph=Math.max(1,p.h/lvH*MM_H);
+        ctx.fillRect(sx(p.x),sy(p.y),pw,ph);
+      });
+      // drawn platforms
+      ctx.fillStyle='#c080ff';
+      this.drawnPlatforms.forEach(p=>{
+        const pw=Math.max(1,p.w/lvW*MM_W);
+        ctx.fillRect(sx(p.x),sy(p.y),Math.max(1,pw),2);
+      });
+      // coins
+      ctx.fillStyle='#ffd700';
+      this.coinObjs.forEach(c=>{
+        if(!c.collected) ctx.fillRect(sx(c.wx)-1,sy(c.wy)-1,2,2);
+      });
+      // goal
+      const g=this.lvData.goal;
+      ctx.fillStyle=this._goalReached?'#00ff88':'#ffd700';
+      ctx.fillRect(sx(g.x),sy(g.y),Math.max(2,g.w/lvW*MM_W),Math.max(2,g.h/lvH*MM_H));
+      // player dot
+      if(this.player){
+        ctx.globalAlpha=1;
+        ctx.fillStyle='#ffffff';
+        ctx.shadowColor='#c080ff'; ctx.shadowBlur=6;
+        ctx.beginPath();
+        ctx.arc(sx(this.player.cx),sy(this.player.cy),2.5,0,Math.PI*2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
 
     // speedrun timer — centre-top (point 53)
     if(this.state==='playing'&&this.lvData){
