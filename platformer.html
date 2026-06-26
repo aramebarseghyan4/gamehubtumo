@@ -122,7 +122,7 @@
 
     /* ── Admin button ── */
     #admin-btn {
-      position:fixed; top:10px; right:calc(var(--pillar-w) + 58px);
+      position:fixed; top:10px; left:calc(var(--pillar-w) + 82px);
       z-index:200; background:rgba(20,10,48,.85);
       border:1px solid rgba(160,80,255,.35); color:#8060c0;
       padding:5px 14px; min-height:32px;
@@ -130,110 +130,143 @@
       letter-spacing:0.06em; cursor:pointer; border-radius:8px;
       backdrop-filter:blur(10px);
       transition:background .18s, color .18s, border-color .18s, box-shadow .18s;
-      display:none;
     }
-    #admin-btn.visible { display:block; }
     #admin-btn:hover {
       background:rgba(100,50,220,.28); color:#c0a0ff;
       border-color:rgba(180,100,255,.60); box-shadow:0 0 14px rgba(140,70,255,.35);
+    }
+    #admin-btn.adm-logged {
+      border-color:rgba(80,220,120,.50); color:#55ee99;
+      background:rgba(20,60,30,.55);
     }
 
     /* ── Admin panel overlay ── */
     #admin-panel {
       display:none; position:fixed; inset:0; z-index:1500;
-      background:rgba(0,0,0,.78); align-items:center; justify-content:center;
-      backdrop-filter:blur(6px);
+      background:rgba(0,0,0,.82); align-items:center; justify-content:center;
+      backdrop-filter:blur(8px);
     }
     #admin-panel.visible { display:flex; }
 
     .adm-box {
-      display:flex; flex-direction:column; gap:16px;
-      padding:32px 36px 28px;
+      display:flex; flex-direction:column; gap:0;
       background:linear-gradient(160deg,rgba(18,8,44,.97) 0%,rgba(8,4,22,.99) 100%);
-      border:1.5px solid rgba(160,80,255,.42); border-radius:22px;
-      box-shadow:0 0 60px rgba(120,0,220,.32), 0 24px 64px rgba(0,0,0,.75);
-      min-width:min(480px,92vw); text-align:center; position:relative;
+      border:1.5px solid rgba(160,80,255,.42); border-radius:24px;
+      box-shadow:0 0 80px rgba(120,0,220,.40), 0 0 0 1px rgba(140,70,255,.10), 0 28px 72px rgba(0,0,0,.80);
+      width:min(560px,94vw); position:relative; overflow:hidden;
       animation:admIn .3s cubic-bezier(.175,.885,.32,1.275) both;
     }
     @keyframes admIn { from{transform:scale(.9);opacity:0} to{transform:scale(1);opacity:1} }
     @keyframes blink  { 0%,100%{opacity:.45} 50%{opacity:.15} }
     .adm-box::before {
-      content:''; position:absolute; top:0; left:12%; right:12%; height:1px;
-      background:linear-gradient(90deg,transparent,rgba(255,215,0,.7),rgba(255,255,255,.5),rgba(255,215,0,.7),transparent);
+      content:''; position:absolute; top:0; left:10%; right:10%; height:1px;
+      background:linear-gradient(90deg,transparent,rgba(255,215,0,.75),rgba(255,255,255,.55),rgba(255,215,0,.75),transparent);
+      z-index:1;
     }
+
+    /* scrollable body */
+    .adm-scroll {
+      overflow-y:auto; max-height:calc(100vh - 140px);
+      display:flex; flex-direction:column; gap:14px;
+      padding:22px 28px 26px;
+    }
+    .adm-scroll::-webkit-scrollbar { width:4px; }
+    .adm-scroll::-webkit-scrollbar-track { background:rgba(255,255,255,.04); border-radius:4px; }
+    .adm-scroll::-webkit-scrollbar-thumb { background:rgba(160,80,255,.35); border-radius:4px; }
+
+    /* sticky header */
+    .adm-head {
+      padding:20px 28px 16px;
+      border-bottom:1px solid rgba(160,80,255,.18);
+      display:flex; align-items:center; gap:14px; flex-shrink:0;
+    }
+    .adm-head-icon { font-size:2rem; filter:drop-shadow(0 0 14px rgba(180,80,255,.75)); }
     .adm-title {
-      font-family:'Orbitron',sans-serif; font-size:1.1rem; font-weight:900;
+      font-family:'Orbitron',sans-serif; font-size:1.05rem; font-weight:900;
       letter-spacing:.14em; color:#c880ff; text-shadow:0 0 20px rgba(180,80,255,.55);
     }
-    .adm-sub { font-size:.7rem; color:#5a4080; letter-spacing:.08em; }
+    .adm-sub { font-size:.66rem; color:#5a4080; letter-spacing:.08em; margin-top:2px; }
     .adm-close {
-      position:absolute; top:12px; right:14px;
+      position:absolute; top:14px; right:16px;
       background:transparent; border:none; color:#5a4080;
       font-size:1rem; cursor:pointer; padding:4px 8px; border-radius:6px;
-      transition:color .15s, background .15s;
+      transition:color .15s, background .15s; z-index:2;
     }
     .adm-close:hover { color:#c080ff; background:rgba(160,80,255,.14); }
 
+    /* section label */
+    .adm-section-label {
+      font-family:'Orbitron',sans-serif; font-size:.58rem; font-weight:900;
+      letter-spacing:.18em; color:#5a3a90; text-transform:uppercase;
+      padding-bottom:8px; border-bottom:1px solid rgba(160,80,255,.15);
+      margin-bottom:2px;
+    }
+
     .adm-grid {
-      display:grid; grid-template-columns:1fr 1fr; gap:10px; width:100%;
+      display:grid; grid-template-columns:1fr 1fr; gap:8px; width:100%;
     }
     .adm-row { grid-column:1/-1; }
 
     .adm-toggle {
       display:flex; align-items:center; justify-content:space-between;
-      padding:10px 14px; border-radius:12px;
+      padding:9px 12px; border-radius:10px;
       background:rgba(255,255,255,.04); border:1px solid rgba(160,80,255,.20);
       cursor:pointer; transition:background .18s, border-color .18s;
-      font-family:'Orbitron',sans-serif; font-size:.72rem; font-weight:700;
-      letter-spacing:.06em; color:#a080c8; user-select:none;
+      font-family:'Orbitron',sans-serif; font-size:.68rem; font-weight:700;
+      letter-spacing:.05em; color:#a080c8; user-select:none; gap:8px;
     }
     .adm-toggle:hover { background:rgba(160,80,255,.12); border-color:rgba(160,80,255,.40); }
     .adm-toggle.on {
       background:rgba(60,200,100,.12); border-color:rgba(80,220,120,.50); color:#55ee99;
     }
     .adm-toggle .pill {
-      width:34px; height:18px; border-radius:9px;
+      width:32px; height:17px; border-radius:9px;
       background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.18);
       position:relative; transition:background .18s, border-color .18s;
       flex-shrink:0;
     }
     .adm-toggle .pill::after {
       content:''; position:absolute; top:2px; left:2px;
-      width:12px; height:12px; border-radius:50%;
+      width:11px; height:11px; border-radius:50%;
       background:#5a4a80; transition:transform .18s, background .18s;
     }
     .adm-toggle.on .pill { background:rgba(80,220,120,.35); border-color:rgba(80,220,120,.55); }
-    .adm-toggle.on .pill::after { transform:translateX(16px); background:#44ee88; }
+    .adm-toggle.on .pill::after { transform:translateX(15px); background:#44ee88; }
 
     .adm-btn {
-      width:100%; padding:9px 14px; border-radius:12px;
+      width:100%; padding:8px 12px; border-radius:10px;
       background:linear-gradient(135deg,rgba(100,0,200,.55),rgba(70,0,150,.45));
       border:1px solid rgba(180,80,255,.45); color:#d0aaff;
-      font-family:'Orbitron',sans-serif; font-size:.72rem; font-weight:700;
-      letter-spacing:.06em; cursor:pointer;
+      font-family:'Orbitron',sans-serif; font-size:.68rem; font-weight:700;
+      letter-spacing:.05em; cursor:pointer;
       transition:background .15s, box-shadow .15s, transform .12s;
     }
     .adm-btn:hover {
       background:linear-gradient(135deg,rgba(140,0,255,.65),rgba(100,0,200,.55));
-      box-shadow:0 0 16px rgba(157,0,255,.40); transform:translateY(-1px);
+      box-shadow:0 0 14px rgba(157,0,255,.40); transform:translateY(-1px);
     }
     .adm-btn.danger {
       background:linear-gradient(135deg,rgba(140,0,0,.55),rgba(90,0,0,.45));
       border-color:rgba(255,60,60,.40); color:#ff9988;
     }
-    .adm-btn.danger:hover { box-shadow:0 0 16px rgba(255,0,0,.30); }
+    .adm-btn.danger:hover { box-shadow:0 0 14px rgba(255,0,0,.30); }
+    .adm-btn.warn {
+      background:linear-gradient(135deg,rgba(140,80,0,.55),rgba(90,50,0,.45));
+      border-color:rgba(255,160,40,.40); color:#ffcc88;
+    }
+    .adm-btn.warn:hover { box-shadow:0 0 14px rgba(255,140,0,.30); }
 
     .adm-stat {
       display:flex; justify-content:space-between; align-items:center;
-      padding:8px 14px; border-radius:10px;
+      padding:7px 12px; border-radius:8px;
       background:rgba(255,255,255,.03); border:1px solid rgba(160,80,255,.14);
-      font-size:.68rem; color:#6050a0;
+      font-size:.65rem; color:#6050a0;
     }
-    .adm-stat b { font-family:'Orbitron',monospace; color:#c0a8ff; font-size:.75rem; }
+    .adm-stat b { font-family:'Orbitron',monospace; color:#c0a8ff; font-size:.72rem; }
 
     .adm-divider {
       width:100%; height:1px; grid-column:1/-1;
-      background:linear-gradient(90deg,transparent,rgba(160,80,255,.28),transparent);
+      background:linear-gradient(90deg,transparent,rgba(160,80,255,.22),transparent);
     }
 
     /* Overlays */
@@ -314,13 +347,13 @@
     .diff-btn:hover { background:rgba(70,15,160,.7); color:#c0a0ff; border-color:rgba(170,75,255,.55); }
     .diff-btn.active { background:rgba(100,0,240,.65); color:#fff; border-color:rgba(200,100,255,.8); box-shadow:0 0 12px rgba(150,50,255,.4); }
     .skin-dot {
-      width:22px; height:22px; border-radius:50%; border:2px solid transparent;
-      cursor:pointer; display:inline-block; transition:.15s; vertical-align:middle; margin:0 3px;
-      box-shadow:0 0 7px currentColor;
+      width:36px; height:36px; border-radius:50%; border:2.5px solid transparent;
+      cursor:pointer; display:flex; align-items:center; justify-content:center;
+      transition:.18s cubic-bezier(.22,1,.36,1); box-shadow:0 0 10px currentColor;
     }
-    .skin-dot:hover { transform:scale(1.15); }
-    .skin-dot.active { border-color:#fff; transform:scale(1.22); }
-    .skin-dot.skin-locked { opacity:.22; cursor:not-allowed; filter:grayscale(1); box-shadow:none; }
+    .skin-dot:hover { transform:scale(1.18); box-shadow:0 0 18px currentColor; }
+    .skin-dot.active { border-color:#fff; transform:scale(1.28); box-shadow:0 0 22px currentColor, 0 0 44px currentColor; }
+    .skin-dot.skin-locked { opacity:.25; cursor:not-allowed; filter:grayscale(1); box-shadow:none; transform:none !important; }
 
     /* ── 86 Pause screen ── */
     #screen-pause { display:none; }
@@ -377,46 +410,96 @@
   <div id="admin-panel">
     <div class="adm-box">
       <button class="adm-close" id="adm-close">✕</button>
-      <div style="font-size:2rem;filter:drop-shadow(0 0 14px rgba(180,80,255,.7))">🔧</div>
-      <div class="adm-title">ADMIN PANEL</div>
-      <div class="adm-sub">Neon Rush — Game Controls</div>
 
-      <!-- Stats row -->
-      <div class="adm-grid">
-        <div class="adm-stat">Level <b id="adm-lv">—</b></div>
-        <div class="adm-stat">Score <b id="adm-sc">—</b></div>
-        <div class="adm-stat">Lives <b id="adm-li">—</b></div>
-        <div class="adm-stat">Coins <b id="adm-co">—</b></div>
-      </div>
-
-      <div class="adm-divider"></div>
-
-      <!-- Toggles -->
-      <div class="adm-grid">
-        <div class="adm-toggle" id="tog-god" onclick="adminToggle('god')">
-          <span>☠ God Mode</span><div class="pill"></div>
-        </div>
-        <div class="adm-toggle" id="tog-speed" onclick="adminToggle('speed')">
-          <span>⚡ Speed ×2</span><div class="pill"></div>
-        </div>
-        <div class="adm-toggle" id="tog-ink" onclick="adminToggle('ink')">
-          <span>✏ Infinite Ink</span><div class="pill"></div>
-        </div>
-        <div class="adm-toggle" id="tog-fly" onclick="adminToggle('fly')">
-          <span>🕊 No Gravity</span><div class="pill"></div>
+      <!-- Sticky header -->
+      <div class="adm-head">
+        <div class="adm-head-icon">🔧</div>
+        <div>
+          <div class="adm-title">ADMIN PANEL</div>
+          <div class="adm-sub">Neon Rush — Developer Controls</div>
         </div>
       </div>
 
-      <div class="adm-divider"></div>
-
-      <!-- Action buttons -->
-      <div class="adm-grid">
-        <button class="adm-btn" onclick="adminAddLives()">➕ Add 3 Lives</button>
-        <button class="adm-btn" onclick="adminAddScore()">💰 +1000 Score</button>
-        <button class="adm-btn" onclick="adminSkipLevel()">⏭ Skip Level</button>
-        <button class="adm-btn" onclick="adminRestartLevel()">🔄 Restart Level</button>
-        <button class="adm-btn adm-row danger" onclick="adminWipeScores()">🗑 Wipe Best Times</button>
+      <!-- Login gate (shown when not authenticated) -->
+      <div id="adm-login-gate" style="display:none;flex-direction:column;align-items:center;gap:14px;padding:28px 32px 32px;text-align:center;">
+        <div style="font-size:2rem;filter:drop-shadow(0 0 14px rgba(180,80,255,.7))">🔐</div>
+        <div style="font-family:'Orbitron',sans-serif;font-size:.9rem;font-weight:900;letter-spacing:.12em;color:#c880ff;">ADMIN LOGIN</div>
+        <input id="adm-pw-input" type="password" placeholder="Enter admin code" maxlength="32" autocomplete="off"
+          style="width:100%;background:rgba(255,255,255,.07);border:1.5px solid rgba(160,80,255,.38);border-radius:10px;color:#e0ccff;font-size:1rem;padding:10px 16px;outline:none;font-family:'Orbitron',monospace;letter-spacing:.12em;text-align:center;transition:border-color .2s,box-shadow .2s;">
+        <div id="adm-pw-msg" style="font-size:.72rem;min-height:14px;color:#ff6666;letter-spacing:.05em;"></div>
+        <button id="adm-login-btn" style="font-family:'Orbitron',sans-serif;background:linear-gradient(135deg,rgba(120,0,220,.65),rgba(80,0,160,.55));border:1px solid rgba(200,100,255,.50);color:#e0aaff;padding:10px 32px;border-radius:10px;font-size:.8rem;font-weight:900;letter-spacing:.06em;cursor:pointer;transition:.15s;">🔓 Login</button>
       </div>
+
+      <!-- Scrollable body -->
+      <div class="adm-scroll" id="adm-controls" style="display:none;">
+
+        <!-- Live Stats -->
+        <div class="adm-section-label">📊 Live Stats</div>
+        <div class="adm-grid">
+          <div class="adm-stat">Level <b id="adm-lv">—</b></div>
+          <div class="adm-stat">Score <b id="adm-sc">—</b></div>
+          <div class="adm-stat">Lives <b id="adm-li">—</b></div>
+          <div class="adm-stat">Coins <b id="adm-co">—</b></div>
+        </div>
+
+        <div class="adm-divider"></div>
+
+        <!-- Cheat Toggles -->
+        <div class="adm-section-label">⚡ Cheat Toggles</div>
+        <div class="adm-grid">
+          <div class="adm-toggle" id="tog-god" onclick="adminToggle('god')">
+            <span>☠ God Mode</span><div class="pill"></div>
+          </div>
+          <div class="adm-toggle" id="tog-speed" onclick="adminToggle('speed')">
+            <span>⚡ Speed ×2</span><div class="pill"></div>
+          </div>
+          <div class="adm-toggle" id="tog-ink" onclick="adminToggle('ink')">
+            <span>✏ Infinite Ink</span><div class="pill"></div>
+          </div>
+          <div class="adm-toggle" id="tog-fly" onclick="adminToggle('fly')">
+            <span>🕊 No Gravity</span><div class="pill"></div>
+          </div>
+          <div class="adm-toggle" id="tog-jumps" onclick="adminToggle('jumps')">
+            <span>∞ Unlim Jumps</span><div class="pill"></div>
+          </div>
+          <div class="adm-toggle" id="tog-freeze" onclick="adminToggle('freeze')">
+            <span>❄ Freeze Enemies</span><div class="pill"></div>
+          </div>
+          <div class="adm-toggle adm-row" id="tog-slow" onclick="adminToggle('slow')">
+            <span>🐢 Slow Motion (×0.4)</span><div class="pill"></div>
+          </div>
+        </div>
+
+        <div class="adm-divider"></div>
+
+        <!-- Actions -->
+        <div class="adm-section-label">🎮 Actions</div>
+        <div class="adm-grid">
+          <button class="adm-btn" onclick="adminAddLives()">➕ Add 3 Lives</button>
+          <button class="adm-btn" onclick="adminAddScore()">💰 +1000 Score</button>
+          <button class="adm-btn" onclick="adminRefillInk(this)">🖊 Refill Ink</button>
+          <button class="adm-btn" onclick="adminCollectCoins(this)">🪙 Collect All Coins</button>
+          <button class="adm-btn" onclick="adminTeleportCP(this)">📍 Teleport to CP</button>
+          <button class="adm-btn" onclick="adminSkipLevel()">⏭ Skip Level</button>
+          <button class="adm-btn adm-row" onclick="adminRestartLevel()">🔄 Restart Level</button>
+        </div>
+
+        <div class="adm-divider"></div>
+
+        <!-- Level Jump -->
+        <div class="adm-section-label">🗺 Jump to Level</div>
+        <div class="adm-grid" id="adm-level-btns"></div>
+
+        <div class="adm-divider"></div>
+
+        <!-- Data management -->
+        <div class="adm-section-label">⚠ Data</div>
+        <div class="adm-grid">
+          <button class="adm-btn warn" onclick="adminUnlockAll(this)">🔓 Unlock All Levels</button>
+          <button class="adm-btn danger" onclick="adminWipeScores(this)">🗑 Wipe Best Times</button>
+        </div>
+
+      </div><!-- end adm-scroll -->
     </div>
   </div>
 
@@ -524,12 +607,13 @@
   </div>
 
   <!-- Dedicated settings screen -->
-  <div class="screen" id="screen-settings">
+  <div class="screen" id="screen-settings" style="overflow-y:auto;padding:16px 10px;">
     <div class="sett-box">
       <div class="sett-title">⚙ SETTINGS</div>
 
       <div class="sett-divider"></div>
 
+      <!-- Difficulty -->
       <div class="sett-row">
         <span class="sett-label">DIFFICULTY</span>
         <div class="sett-btns">
@@ -541,13 +625,29 @@
 
       <div class="sett-divider"></div>
 
-      <div class="sett-row">
+      <!-- Skin picker -->
+      <div class="sett-row" style="flex-direction:column;align-items:flex-start;gap:10px;">
         <span class="sett-label">SKIN</span>
-        <div class="sett-btns"><span id="skin-slots"></span></div>
+        <div id="skin-slots" style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;width:100%;"></div>
+        <div id="skin-name-preview" style="font-family:'Orbitron',monospace;font-size:11px;letter-spacing:.12em;color:#c080ff;text-align:center;width:100%;min-height:14px;text-shadow:0 0 12px currentColor;"></div>
       </div>
 
       <div class="sett-divider"></div>
 
+      <!-- Trail style -->
+      <div class="sett-row">
+        <span class="sett-label">TRAIL STYLE</span>
+        <div class="sett-btns">
+          <div class="diff-btn trail-btn" id="trail-default" tabindex="0">DEFAULT</div>
+          <div class="diff-btn trail-btn" id="trail-comet"   tabindex="0">COMET</div>
+          <div class="diff-btn trail-btn" id="trail-sparkle" tabindex="0">SPARKLE</div>
+          <div class="diff-btn trail-btn" id="trail-none"    tabindex="0">NONE</div>
+        </div>
+      </div>
+
+      <div class="sett-divider"></div>
+
+      <!-- Mobile controls -->
       <div class="sett-row">
         <span class="sett-label">MOBILE CONTROLS</span>
         <div class="sett-btns">
@@ -558,6 +658,7 @@
 
       <div class="sett-divider"></div>
 
+      <!-- Sound -->
       <div class="sett-row">
         <span class="sett-label">SOUND</span>
         <div class="sett-btns">
@@ -1264,7 +1365,7 @@ class WindZone {
 // ═══════════════════════════════════════════════
 class Player {
   constructor(x,y){
-    this.x=x;this.y=y; this.w=20; this.h=38;
+    this.x=x;this.y=y; this.w=26; this.h=48;
     this.vx=0;this.vy=0;
     this.onGround=false;this.onPlat=null;
     this.jumpsLeft=MAX_JUMPS;
@@ -1315,9 +1416,9 @@ class Player {
     // crouch (point 41) — shrink hitbox while pressing down on ground
     const wantCrouch=inp.down&&this.onGround;
     if(wantCrouch&&!this._crouching){
-      this._crouching=true; this.y+=16; this.h=22;
+      this._crouching=true; this.y+=20; this.h=28;
     } else if(!wantCrouch&&this._crouching){
-      this.h=38; this.y-=16; this._crouching=false;
+      this.h=48; this.y-=20; this._crouching=false;
     }
 
     if(inp.jumpPressed) this.bufT=JUMP_BUF;
@@ -1533,13 +1634,37 @@ class Player {
     if(this.dead) return;
     if(this.invT>0&&Math.floor(this.invT*10)%2===0) return;
 
-    for(const tr of this._trail){
-      const s=cam.scr(tr.x,tr.y);
-      const a=(tr.life/tr.ml)*.17;
-      ctx.save();ctx.globalAlpha=a;
-      ctx.strokeStyle=tr.col||'#9050e0';ctx.lineWidth=2;ctx.lineCap='round';
-      ctx.beginPath();ctx.arc(s.x,s.y,5,0,Math.PI*2);ctx.stroke();
-      ctx.restore();
+    const _tStyle=typeof game!=='undefined'?game._trailStyle:'default';
+    if(_tStyle!=='none'){
+      for(const tr of this._trail){
+        const s=cam.scr(tr.x,tr.y);
+        const a=tr.life/tr.ml;
+        ctx.save();
+        if(_tStyle==='comet'){
+          ctx.globalAlpha=a*.32;
+          ctx.fillStyle=tr.col||'#9050e0';
+          ctx.shadowColor=tr.col||'#9050e0'; ctx.shadowBlur=14;
+          ctx.beginPath();ctx.arc(s.x,s.y,10*a+2,0,Math.PI*2);ctx.fill();
+        } else if(_tStyle==='sparkle'){
+          ctx.globalAlpha=a*.70;
+          ctx.fillStyle=tr.col||'#9050e0';
+          ctx.shadowColor=tr.col||'#9050e0'; ctx.shadowBlur=8;
+          const r=4*a+1, R=r*2.4;
+          ctx.beginPath();
+          for(let i=0;i<8;i++){
+            const ang=i*Math.PI/4-(Math.PI/8);
+            const rd=i%2===0?R:r;
+            i===0?ctx.moveTo(s.x+Math.cos(ang)*rd,s.y+Math.sin(ang)*rd)
+                 :ctx.lineTo(s.x+Math.cos(ang)*rd,s.y+Math.sin(ang)*rd);
+          }
+          ctx.closePath();ctx.fill();
+        } else {
+          ctx.globalAlpha=a*.20;
+          ctx.strokeStyle=tr.col||'#9050e0';ctx.lineWidth=2.5;ctx.lineCap='round';
+          ctx.beginPath();ctx.arc(s.x,s.y,7,0,Math.PI*2);ctx.stroke();
+        }
+        ctx.restore();
+      }
     }
 
     const s=cam.scr(this.cx,this.cy);
@@ -1573,8 +1698,8 @@ class Player {
     const COL = this._dashing>0?_sk.dashCol:sliding?_sk.slideCol:_sk.col;
     const GLOW= _sk.glow;
     ctx.strokeStyle=COL;ctx.fillStyle=COL;
-    ctx.shadowColor=GLOW;ctx.shadowBlur=12;
-    ctx.lineWidth=2.4;ctx.lineCap='round';ctx.lineJoin='round';
+    ctx.shadowColor=GLOW;ctx.shadowBlur=16;
+    ctx.lineWidth=3.0;ctx.lineCap='round';ctx.lineJoin='round';
 
     // body
     ctx.beginPath();ctx.moveTo(0,shY);ctx.lineTo(0,hiY);ctx.stroke();
@@ -1817,10 +1942,14 @@ const LEVELS=[
 // SKINS — unlockable by beating levels
 // ═══════════════════════════════════════════════
 const SKINS=[
-  {id:0,name:'NEON',   col:'#cca8ff',glow:'#8840ff',dashCol:'#ff90ff',slideCol:'#90d0ff',unlockLevel:-1},
-  {id:1,name:'INFERNO',col:'#ff9040',glow:'#cc2200',dashCol:'#ffcc00',slideCol:'#ff6600',unlockLevel:0},
-  {id:2,name:'FROST',  col:'#80e8ff',glow:'#0080c0',dashCol:'#ffffff',slideCol:'#40c8ff',unlockLevel:1},
-  {id:3,name:'COSMIC', col:'#ffe040',glow:'#cc6600',dashCol:'#ff80ff',slideCol:'#80ff80',unlockLevel:2},
+  {id:0,name:'NEON',    col:'#cca8ff',glow:'#8840ff',dashCol:'#ff90ff',slideCol:'#90d0ff',unlockLevel:-1},
+  {id:1,name:'INFERNO', col:'#ff9040',glow:'#cc2200',dashCol:'#ffcc00',slideCol:'#ff6600',unlockLevel:0},
+  {id:2,name:'FROST',   col:'#80e8ff',glow:'#0080c0',dashCol:'#ffffff',slideCol:'#40c8ff',unlockLevel:1},
+  {id:3,name:'COSMIC',  col:'#ffe040',glow:'#cc6600',dashCol:'#ff80ff',slideCol:'#80ff80',unlockLevel:2},
+  {id:4,name:'SHADOW',  col:'#a060ff',glow:'#2000a0',dashCol:'#e0d0ff',slideCol:'#5020b0',unlockLevel:-1},
+  {id:5,name:'LAVA',    col:'#ff4830',glow:'#aa1000',dashCol:'#ffee00',slideCol:'#ff8030',unlockLevel:-1},
+  {id:6,name:'EMERALD', col:'#30ee80',glow:'#007040',dashCol:'#80ffcc',slideCol:'#00c060',unlockLevel:-1},
+  {id:7,name:'GALAXY',  col:'#ff70ff',glow:'#600090',dashCol:'#ffe090',slideCol:'#70c0ff',unlockLevel:-1},
 ];
 
 // ═══════════════════════════════════════════════
@@ -1855,8 +1984,9 @@ class Game {
     this.lvIdx=0; this.score=0; this.lives=3; this.coins=0;
 
     // Skin + difficulty (feature 66, 68)
-    this._skin      = Math.min(SKINS.length-1,   parseInt(localStorage.getItem('nr_skin')||'0'));
-    this._difficulty= Math.min(DIFF_MODES.length-1,parseInt(localStorage.getItem('nr_diff')||'1'));
+    this._skin       = Math.min(SKINS.length-1,   parseInt(localStorage.getItem('nr_skin')||'0'));
+    this._difficulty = Math.min(DIFF_MODES.length-1,parseInt(localStorage.getItem('nr_diff')||'1'));
+    this._trailStyle = localStorage.getItem('nr_trail')||'default';
 
     this.player=null; this.platforms=[]; this.coinObjs=[];
     this.particles=[]; this.lvData=null;
@@ -2249,6 +2379,17 @@ class Game {
     const setDpad=on=>{ this._dpadOn=on; localStorage.setItem('nr_dpad',on?'1':'0'); this._applyDpad(); };
     document.getElementById('tog-dpad-on') .onclick=()=>setDpad(true);
     document.getElementById('tog-dpad-off').onclick=()=>setDpad(false);
+    // Trail style buttons
+    const trailBtns=document.querySelectorAll('.trail-btn');
+    const syncTrail=()=>trailBtns.forEach(b=>b.classList.toggle('active',b.id==='trail-'+this._trailStyle));
+    syncTrail();
+    trailBtns.forEach(b=>{
+      b.onclick=()=>{
+        this._trailStyle=b.id.replace('trail-','');
+        localStorage.setItem('nr_trail',this._trailStyle);
+        syncTrail();
+      };
+    });
     this._screen('screen-settings');
   }
 
@@ -2256,24 +2397,35 @@ class Game {
     const slots=document.getElementById('skin-slots');
     if(!slots) return;
     slots.innerHTML='';
+    const preview=document.getElementById('skin-name-preview');
+    // Show current skin name on load
+    const curSk=SKINS[this._skin]||SKINS[0];
+    if(preview){ preview.textContent=curSk.name; preview.style.color=curSk.col; }
+
     SKINS.forEach(sk=>{
       const unlocked=sk.unlockLevel<0||localStorage.getItem(`nr_cleared_${sk.unlockLevel}`)===`1`;
-      const wrap=document.createElement('span');
-      wrap.style.cssText='display:inline-flex;flex-direction:column;align-items:center;gap:3px;margin:0 4px;vertical-align:middle;';
-      const dot=document.createElement('span');
+      const wrap=document.createElement('div');
+      wrap.style.cssText='display:flex;flex-direction:column;align-items:center;gap:5px;';
+
+      const dot=document.createElement('div');
       dot.className='skin-dot'+(this._skin===sk.id?' active':'')+(unlocked?'':' skin-locked');
-      dot.style.background=unlocked?sk.col:'#333';
-      dot.style.color=unlocked?sk.col:'#333';
+      dot.style.background=unlocked?sk.col:'#2a1a4a';
+      dot.style.color=unlocked?sk.col:'#444';
       dot.title=sk.name+(unlocked?'':' — beat level '+(sk.unlockLevel+1)+' to unlock');
-      dot.textContent=unlocked?'':'\u{1F512}'; // padlock emoji for locked
-      dot.style.fontSize=unlocked?'inherit':'11px';
-      dot.style.lineHeight='22px';
-      dot.style.textAlign='center';
+      if(!unlocked){ dot.textContent='🔒'; dot.style.fontSize='15px'; }
+
       const lbl=document.createElement('span');
-      lbl.style.cssText=`font-family:Orbitron,monospace;font-size:8px;color:${unlocked?sk.col:'#444'};letter-spacing:.04em;`;
+      lbl.style.cssText=`font-family:Orbitron,monospace;font-size:7px;letter-spacing:.05em;color:${unlocked?sk.col:'#3a2a5a'};`;
       lbl.textContent=sk.name;
+
       if(unlocked){
-        dot.style.cursor='pointer';
+        dot.addEventListener('mouseenter',()=>{
+          if(preview){ preview.textContent=sk.name; preview.style.color=sk.col; }
+        });
+        dot.addEventListener('mouseleave',()=>{
+          const cur=SKINS[this._skin]||SKINS[0];
+          if(preview){ preview.textContent=cur.name; preview.style.color=cur.col; }
+        });
         dot.addEventListener('click',()=>{
           this._skin=sk.id;
           localStorage.setItem('nr_skin',sk.id);
@@ -3287,107 +3439,205 @@ game.run();
 // ═══════════════════════════════════════════════
 (function(){
   const ADMIN_SESSION_KEY = 'kq_admin_session';
+  const ADMIN_PW_KEY      = 'kq_adm_pw';
   const btn   = document.getElementById('admin-btn');
   const panel = document.getElementById('admin-panel');
+  const loginGate = document.getElementById('adm-login-gate');
+  const controls  = document.getElementById('adm-controls');
 
-  const _flags = { god:false, speed:false, ink:false, fly:false };
+  const _flags = { god:false, speed:false, ink:false, fly:false, jumps:false, freeze:false, slow:false };
+  let _enemySnap = [];
 
   function isAdmin(){ return localStorage.getItem(ADMIN_SESSION_KEY)==='1'; }
+  function getAdminPw(){ return localStorage.getItem(ADMIN_PW_KEY) || '4474'; }
 
-  // Show/hide the button based on session
   function refreshBtn(){
-    if(isAdmin()) btn.classList.add('visible');
-    else          btn.classList.remove('visible');
+    if(isAdmin()){
+      btn.textContent = '✅ Admin';
+      btn.classList.add('adm-logged');
+    } else {
+      btn.textContent = '🔧 Admin';
+      btn.classList.remove('adm-logged');
+    }
   }
   refreshBtn();
-  // Re-check every 2s in case user logs in from hub in another tab
   setInterval(refreshBtn, 2000);
 
   function openPanel(){
-    if(!isAdmin()) return;
-    updateStats();
     panel.classList.add('visible');
+    if(isAdmin()){
+      loginGate.style.display = 'none';
+      controls.style.display  = 'flex';
+      buildLevelBtns();
+      updateStats();
+    } else {
+      loginGate.style.display = 'flex';
+      controls.style.display  = 'none';
+      const pwInput = document.getElementById('adm-pw-input');
+      pwInput.value = '';
+      document.getElementById('adm-pw-msg').textContent = '';
+      setTimeout(()=>pwInput.focus(), 80);
+    }
   }
-  function closePanel(){ panel.classList.remove('visible'); }
+  function closePanel(){
+    panel.classList.remove('visible');
+  }
+
+  // Login form logic
+  function tryAdminLogin(){
+    const val = document.getElementById('adm-pw-input').value;
+    const msg = document.getElementById('adm-pw-msg');
+    if(val === getAdminPw()){
+      localStorage.setItem(ADMIN_SESSION_KEY, '1');
+      refreshBtn();
+      loginGate.style.display = 'none';
+      controls.style.display  = 'flex';
+      buildLevelBtns();
+      updateStats();
+      msg.textContent = '';
+    } else {
+      msg.style.color = '#ff6666';
+      msg.textContent = '❌ Wrong code';
+      document.getElementById('adm-pw-input').value = '';
+      setTimeout(()=>document.getElementById('adm-pw-input').focus(), 50);
+    }
+  }
+  document.getElementById('adm-login-btn').addEventListener('click', tryAdminLogin);
+  document.getElementById('adm-pw-input').addEventListener('keydown', e=>{ if(e.key==='Enter') tryAdminLogin(); });
 
   btn.addEventListener('click', openPanel);
   document.getElementById('adm-close').addEventListener('click', closePanel);
   panel.addEventListener('click', e=>{ if(e.target===panel) closePanel(); });
 
   function updateStats(){
-    const g = game;
-    document.getElementById('adm-lv').textContent = g.lvData ? g.lvIdx+1 : '—';
-    document.getElementById('adm-sc').textContent = g.score  ?? '—';
-    document.getElementById('adm-li').textContent = g.lives  ?? '—';
-    document.getElementById('adm-co').textContent = g.coins  ?? '—';
+    document.getElementById('adm-lv').textContent = game.lvData ? game.lvIdx+1 : '—';
+    document.getElementById('adm-sc').textContent = game.score  ?? '—';
+    document.getElementById('adm-li').textContent = game.lives  ?? '—';
+    document.getElementById('adm-co').textContent = game.coins  ?? '—';
   }
-  setInterval(()=>{ if(panel.classList.contains('visible')) updateStats(); }, 500);
+  setInterval(()=>{ if(panel.classList.contains('visible')) updateStats(); }, 400);
 
-  // Toggle rendering
+  function buildLevelBtns(){
+    const container = document.getElementById('adm-level-btns');
+    if(container.children.length) return; // already built
+    LEVELS.forEach((lv, i) => {
+      const b = document.createElement('button');
+      b.className = 'adm-btn';
+      b.textContent = `${i+1}. ${lv.name}`;
+      b.onclick = () => adminGotoLevel(i);
+      container.appendChild(b);
+    });
+  }
+
+  // Toggle
   window.adminToggle = function(key){
     _flags[key] = !_flags[key];
-    const el = document.getElementById('tog-'+key);
-    el.classList.toggle('on', _flags[key]);
-
-    // Apply effects immediately
-    if(key==='speed'){
-      const mult = _flags.speed ? 2 : 1;
-      // Patch the constants via the player's vx cap — apply each frame in patch below
-    }
-    if(key==='ink' && _flags.ink){
-      game._inkUsed = 0;
-      game._updateDrawHUD();
+    document.getElementById('tog-'+key).classList.toggle('on', _flags[key]);
+    if(key==='ink' && _flags.ink){ game._inkUsed=0; game._updateDrawHUD(); }
+    if(key==='freeze'){
+      // snapshot enemy positions when freezing
+      _enemySnap = game.enemies ? game.enemies.map(e=>({e, x:e.x, y:e.y})) : [];
     }
   };
 
-  // Patch: god mode = block _die(), speed = boost move speed, no-gravity = zero gravity
+  // Patch _die: god mode blocks death
   const origDie = game._die.bind(game);
   game._die = function(){
-    if(_flags.god) return; // ignore death
+    if(_flags.god) return;
     origDie();
   };
 
+  // Patch update: apply all flag effects each frame
   const origUpdate = game.update.bind(game);
   game.update = function(dt){
-    origUpdate(dt);
+    const effectiveDt = _flags.slow ? dt * 0.4 : dt;
+    origUpdate(effectiveDt);
+
     const p = game.player;
     if(!p || p.dead) return;
-    // Speed boost
+
+    // Speed ×2
     if(_flags.speed){
-      if(p.vx > MOVE_SPD)  p.vx = Math.min(p.vx, SPRINT_SPD*2);
+      if(p.vx >  MOVE_SPD) p.vx = Math.min(p.vx,  SPRINT_SPD*2);
       if(p.vx < -MOVE_SPD) p.vx = Math.max(p.vx, -SPRINT_SPD*2);
     }
-    // No gravity — kill vy while holding jump
-    if(_flags.fly && p.vy > 0 && game.inp.held('ArrowUp') || _flags.fly && game.inp.held('KeyW') || _flags.fly && game.inp.held('Space')){
+    // No gravity — hold jump to float
+    if(_flags.fly && p.vy > 0 &&
+       (game.inp.held('ArrowUp')||game.inp.held('KeyW')||game.inp.held('Space'))){
       p.vy = -150;
     }
     // Infinite ink
     if(_flags.ink && game._inkUsed > INK_MAX * 0.05){
-      game._inkUsed = 0;
-      game._updateDrawHUD();
+      game._inkUsed = 0; game._updateDrawHUD();
+    }
+    // Unlimited jumps
+    if(_flags.jumps && !p.onGround){
+      p.jumpsLeft = MAX_JUMPS;
+    }
+    // Freeze enemies — restore saved positions each frame
+    if(_flags.freeze && game.enemies){
+      game.enemies.forEach(e => { e.vx=0; });
     }
   };
 
-  // Action buttons
-  window.adminAddLives   = function(){ game.lives += 3; game._hud(); updateStats(); };
-  window.adminAddScore   = function(){ game.score += 1000; game._hud(); updateStats(); };
-  window.adminSkipLevel  = function(){
+  // ── Action buttons ──────────────────────────────
+  window.adminAddLives = function(){
+    game.lives += 3; game._hud(); updateStats();
+  };
+  window.adminAddScore = function(){
+    game.score += 1000; game._hud(); updateStats();
+  };
+  window.adminRefillInk = function(btn){
+    game._inkUsed = 0; game._updateDrawHUD();
+    flashBtn(btn, '✓ Refilled');
+  };
+  window.adminCollectCoins = function(btn){
+    if(!game.coinObjs) return;
+    let gained = 0;
+    game.coinObjs.forEach(c => {
+      if(!c.collected){ c.collected=true; game.score+=c.value; game.coins++; gained++; }
+    });
+    game._hud(); updateStats();
+    flashBtn(btn, `✓ +${gained} coins`);
+  };
+  window.adminTeleportCP = function(btn){
+    const p = game.player;
+    if(!p || !game._cpX) { flashBtn(btn, '✗ No checkpoint'); return; }
+    p.x = game._cpX - p.w/2;
+    p.y = game._cpY - p.h - 4;
+    p.vx = 0; p.vy = 0;
+    flashBtn(btn, '✓ Teleported');
+  };
+  window.adminSkipLevel = function(){
     closePanel();
-    if(game.state==='playing'||game.state==='levelup'){
-      game._levelClear();
-    }
+    if(game.state==='playing'||game.state==='levelup') game._levelClear();
   };
   window.adminRestartLevel = function(){
     closePanel();
     game._loadLevel(game.lvIdx, false);
   };
-  window.adminWipeScores = function(){
+  window.adminGotoLevel = function(idx){
+    closePanel();
+    game.lives = 3; game.score = 0; game.coins = 0;
+    game._loadLevel(idx, false);
+  };
+  window.adminUnlockAll = function(btn){
+    LEVELS.forEach((_,i) => localStorage.setItem(`nr_cleared_${i}`, '1'));
+    flashBtn(btn, '✓ All Unlocked');
+  };
+  window.adminWipeScores = function(btn){
     if(!confirm('Wipe all Neon Rush best times?')) return;
     LEVELS.forEach((_,i) => localStorage.removeItem(`nr_best_${i}`));
-    const origBtn = document.querySelector('.adm-btn.danger');
-    origBtn.textContent = '✓ Wiped!';
-    setTimeout(()=>{ origBtn.textContent = '🗑 Wipe Best Times'; }, 1800);
+    flashBtn(btn, '✓ Wiped');
   };
+
+  // Helper: briefly change button text
+  function flashBtn(btn, msg){
+    if(!btn) return;
+    const orig = btn.textContent;
+    btn.textContent = msg;
+    setTimeout(() => { btn.textContent = orig; }, 1600);
+  }
 })();
 </script>
 </body>
