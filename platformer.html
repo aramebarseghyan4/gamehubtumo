@@ -355,6 +355,21 @@
     .skin-dot.active { border-color:#fff; transform:scale(1.28); box-shadow:0 0 22px currentColor, 0 0 44px currentColor; }
     .skin-dot.skin-locked { opacity:.25; cursor:not-allowed; filter:grayscale(1); box-shadow:none; transform:none !important; }
 
+    /* Accessory cards */
+    .acc-card {
+      display:flex; flex-direction:column; align-items:center; gap:4px;
+      background:rgba(255,255,255,.04); border:1.5px solid rgba(150,65,255,.25);
+      border-radius:12px; padding:8px 10px; min-width:62px; cursor:pointer;
+      transition:.18s; font-family:'Orbitron',sans-serif;
+    }
+    .acc-card:hover { background:rgba(160,80,255,.12); border-color:rgba(160,80,255,.5); }
+    .acc-card.active { border-color:#fff; background:rgba(100,40,200,.25); box-shadow:0 0 14px rgba(180,80,255,.4); }
+    .acc-card.acc-locked { opacity:.35; cursor:not-allowed; }
+    .acc-icon { font-size:1.5rem; line-height:1; }
+    .acc-name { font-size:6.5px; letter-spacing:.06em; color:#9070c0; }
+    .acc-price { font-size:7px; color:#ffd700; letter-spacing:.04em; }
+    .acc-owned { font-size:7px; color:#44ee88; letter-spacing:.04em; }
+
     /* ── 86 Pause screen ── */
     #screen-pause { display:none; }
     #screen-pause .pause-box {
@@ -665,6 +680,17 @@
           <div class="diff-btn" id="sett-sound-on" tabindex="0">ON</div>
           <div class="diff-btn" id="sett-sound-off" tabindex="0">OFF</div>
         </div>
+      </div>
+
+      <div class="sett-divider"></div>
+
+      <!-- Accessories shop -->
+      <div class="sett-row" style="flex-direction:column;align-items:flex-start;gap:10px;">
+        <div style="display:flex;justify-content:space-between;width:100%;align-items:center;">
+          <span class="sett-label">ACCESSORIES</span>
+          <span id="sett-wallet" style="font-family:'Orbitron',monospace;font-size:10px;color:#ffd700;letter-spacing:.06em;">🪙 0</span>
+        </div>
+        <div id="acc-slots" style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;width:100%;"></div>
       </div>
 
       <div class="sett-divider"></div>
@@ -1701,8 +1727,16 @@ class Player {
     ctx.shadowColor=GLOW;ctx.shadowBlur=16;
     ctx.lineWidth=3.0;ctx.lineCap='round';ctx.lineJoin='round';
 
-    // body
-    ctx.beginPath();ctx.moveTo(0,shY);ctx.lineTo(0,hiY);ctx.stroke();
+    // body — torso trapezoid (wider shoulders, narrower hips)
+    const torsoW=H*.22;
+    ctx.lineWidth=2.2;
+    ctx.beginPath();
+    ctx.moveTo(-torsoW,shY); ctx.lineTo(torsoW,shY);     // shoulders
+    ctx.lineTo(torsoW*.6,hiY); ctx.lineTo(-torsoW*.6,hiY); // hips
+    ctx.closePath();
+    ctx.globalAlpha=0.22; ctx.fill();
+    ctx.globalAlpha=1;    ctx.stroke();
+    ctx.lineWidth=3.0;
 
     // head
     ctx.beginPath();ctx.arc(0,hcY,hR,0,Math.PI*2);ctx.stroke();
@@ -1717,21 +1751,21 @@ class Player {
 
     ctx.shadowBlur=9;
     const armBaseY=shY+2;
+    const aOff=torsoW;  // arms start at shoulder edges
 
     // arms
     if(sliding){
-      // wall-slide: both arms reach toward wall
       const wd=this._wallR?1:-1;
-      ctx.beginPath();ctx.moveTo(0,armBaseY);ctx.lineTo(wd*ARM*.8,armBaseY-ARM*.3);ctx.stroke();
-      ctx.beginPath();ctx.moveTo(0,armBaseY);ctx.lineTo(wd*ARM*.6,armBaseY+ARM*.5);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(wd*aOff,armBaseY);ctx.lineTo(wd*(aOff+ARM*.8),armBaseY-ARM*.3);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(wd*aOff,armBaseY);ctx.lineTo(wd*(aOff+ARM*.6),armBaseY+ARM*.5);ctx.stroke();
     } else if(inAir){
-      ctx.beginPath();ctx.moveTo(0,armBaseY);ctx.lineTo(-ARM*.72,armBaseY-ARM*.52);ctx.stroke();
-      ctx.beginPath();ctx.moveTo(0,armBaseY);ctx.lineTo( ARM*.72,armBaseY-ARM*.52);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(-aOff,armBaseY);ctx.lineTo(-aOff-ARM*.72,armBaseY-ARM*.52);ctx.stroke();
+      ctx.beginPath();ctx.moveTo( aOff,armBaseY);ctx.lineTo( aOff+ARM*.72,armBaseY-ARM*.52);ctx.stroke();
     } else {
-      ctx.beginPath();ctx.moveTo(0,armBaseY);
-      ctx.lineTo(-Math.sin(armA+.4)*ARM,armBaseY+Math.cos(armA+.4)*ARM*.7);ctx.stroke();
-      ctx.beginPath();ctx.moveTo(0,armBaseY);
-      ctx.lineTo( Math.sin(-armA+.4)*ARM,armBaseY+Math.cos(-armA+.4)*ARM*.7);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(-aOff,armBaseY);
+      ctx.lineTo(-aOff-Math.sin(armA+.4)*ARM,armBaseY+Math.cos(armA+.4)*ARM*.7);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(aOff,armBaseY);
+      ctx.lineTo( aOff+Math.sin(-armA+.4)*ARM,armBaseY+Math.cos(-armA+.4)*ARM*.7);ctx.stroke();
     }
 
     // legs
@@ -1745,6 +1779,50 @@ class Player {
       ctx.beginPath();ctx.moveTo(0,hiY);
       ctx.lineTo( Math.sin(-legA)*LEG,hiY+Math.cos(-legA)*LEG);ctx.stroke();
     }
+
+    // ── Accessories ──
+    const _acc = typeof game!=='undefined'?ACCESSORIES[game._accessory]||ACCESSORIES[0]:ACCESSORIES[0];
+    if(_acc.id>0){
+      ctx.save();
+      const acGlow=_acc.col;
+      ctx.shadowColor=acGlow; ctx.shadowBlur=14;
+      ctx.strokeStyle=acGlow; ctx.fillStyle=acGlow;
+      ctx.lineWidth=2.2; ctx.lineCap='round'; ctx.lineJoin='round';
+
+      if(_acc.id===1){ // HAT — top hat
+        const brimY=hcY-hR-1, topY=brimY-12;
+        ctx.fillRect(-10,brimY,20,3);
+        ctx.fillRect(-6,topY,12,12);
+      } else if(_acc.id===2){ // SWORD — on arm
+        const sx=this.facing*(aOff+ARM*.68), sy=armBaseY+ARM*.4;
+        ctx.beginPath();
+        ctx.moveTo(sx,sy); ctx.lineTo(sx+this.facing*18,sy-14); ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(sx+this.facing*8,sy-6); ctx.lineTo(sx+this.facing*14,sy-2); ctx.stroke();
+      } else if(_acc.id===3){ // CROWN
+        const crY=hcY-hR-2;
+        ctx.beginPath();
+        ctx.moveTo(-8,crY); ctx.lineTo(-8,crY-9);
+        ctx.lineTo(-4,crY-5); ctx.lineTo(0,crY-12);
+        ctx.lineTo(4,crY-5); ctx.lineTo(8,crY-9);
+        ctx.lineTo(8,crY); ctx.closePath();
+        ctx.fill();
+        ctx.shadowBlur=5;ctx.fillStyle='#fff';
+        ctx.beginPath();ctx.arc(-5,crY-7,1.5,0,Math.PI*2);ctx.fill();
+        ctx.beginPath();ctx.arc(5,crY-7,1.5,0,Math.PI*2);ctx.fill();
+        ctx.beginPath();ctx.arc(0,crY-11,1.5,0,Math.PI*2);ctx.fill();
+      } else if(_acc.id===4){ // CAPE
+        ctx.globalAlpha=0.72;
+        ctx.beginPath();
+        ctx.moveTo(-this.facing*4,shY);
+        ctx.lineTo(-this.facing*16,shY+12);
+        ctx.lineTo(-this.facing*10,hiY+6);
+        ctx.lineTo(-this.facing*2,hiY);
+        ctx.closePath(); ctx.fill();
+      }
+      ctx.restore();
+    }
+
     ctx.restore();
   }
 }
@@ -1829,7 +1907,7 @@ const LEVELS=[
     name:'VERTICAL CLIMB',
     bg:['#050820','#0c1440'],
     lvW:1000, lvH:3800,
-    spX:160, spY:3680,
+    spX:160, spY:3460,
     goal:{x:850,y:160,w:58,h:76,label:'EXIT'},
     star3Time:140, star2Time:250, rockInterval:2.2, lava:true,
     spikes:[
@@ -1939,6 +2017,17 @@ const LEVELS=[
 ];
 
 // ═══════════════════════════════════════════════
+// ACCESSORIES — buyable with collected coins
+// ═══════════════════════════════════════════════
+const ACCESSORIES=[
+  {id:0,name:'NONE',  price:0,  icon:'✕', col:'#555'},
+  {id:1,name:'HAT',   price:2,  icon:'🎩', col:'#c080ff'},
+  {id:2,name:'SWORD', price:10, icon:'⚔',  col:'#80d8ff'},
+  {id:3,name:'CROWN', price:20, icon:'👑', col:'#ffd700'},
+  {id:4,name:'CAPE',  price:35, icon:'🌙', col:'#ff8040'},
+];
+
+// ═══════════════════════════════════════════════
 // SKINS — unlockable by beating levels
 // ═══════════════════════════════════════════════
 const SKINS=[
@@ -1987,6 +2076,10 @@ class Game {
     this._skin       = Math.min(SKINS.length-1,   parseInt(localStorage.getItem('nr_skin')||'0'));
     this._difficulty = Math.min(DIFF_MODES.length-1,parseInt(localStorage.getItem('nr_diff')||'1'));
     this._trailStyle = localStorage.getItem('nr_trail')||'default';
+    // Accessories + persistent wallet (start with 2 bonus coins)
+    this._accessory  = Math.min(ACCESSORIES.length-1,parseInt(localStorage.getItem('nr_acc')||'0'));
+    if(localStorage.getItem('nr_wallet')===null) localStorage.setItem('nr_wallet','2');
+    this._wallet     = parseInt(localStorage.getItem('nr_wallet')||'2');
 
     this.player=null; this.platforms=[]; this.coinObjs=[];
     this.particles=[]; this.lvData=null;
@@ -2354,6 +2447,8 @@ class Game {
     document.querySelectorAll('.diff-btn[id^="diff-"]').forEach((b,i)=>b.classList.toggle('active',i===this._difficulty));
     // Skin
     this._renderSkinPicker();
+    // Accessories
+    this._renderAccessoryShop();
     // D-pad
     this._applyDpad();
     // Sound
@@ -2438,6 +2533,55 @@ class Game {
     });
   }
 
+  _renderAccessoryShop(){
+    const slots=document.getElementById('acc-slots');
+    const walletEl=document.getElementById('sett-wallet');
+    if(!slots) return;
+    if(walletEl) walletEl.textContent=`🪙 ${this._wallet}`;
+    slots.innerHTML='';
+    const owned=JSON.parse(localStorage.getItem('nr_acc_owned')||'[0]');
+    ACCESSORIES.forEach(ac=>{
+      const isOwned=owned.includes(ac.id);
+      const isActive=this._accessory===ac.id;
+      const card=document.createElement('div');
+      card.className='acc-card'+(isActive?' active':'')+((!isOwned&&ac.price>0)?' acc-locked':'');
+
+      const icon=document.createElement('div');
+      icon.className='acc-icon'; icon.textContent=ac.icon;
+
+      const name=document.createElement('div');
+      name.className='acc-name'; name.textContent=ac.name;
+      name.style.color=ac.col;
+
+      const status=document.createElement('div');
+      if(isOwned||ac.price===0){
+        status.className='acc-owned'; status.textContent=isActive?'EQUIPPED':'OWNED';
+      } else {
+        status.className='acc-price'; status.textContent=`🪙 ${ac.price}`;
+      }
+
+      card.appendChild(icon); card.appendChild(name); card.appendChild(status);
+
+      card.addEventListener('click',()=>{
+        if(isOwned||ac.price===0){
+          this._accessory=ac.id;
+          localStorage.setItem('nr_acc',ac.id);
+          this._renderAccessoryShop();
+        } else if(this._wallet>=ac.price){
+          this._wallet-=ac.price;
+          localStorage.setItem('nr_wallet',this._wallet);
+          const upd=JSON.parse(localStorage.getItem('nr_acc_owned')||'[0]');
+          upd.push(ac.id);
+          localStorage.setItem('nr_acc_owned',JSON.stringify(upd));
+          this._accessory=ac.id;
+          localStorage.setItem('nr_acc',ac.id);
+          this._renderAccessoryShop();
+        }
+      });
+      slots.appendChild(card);
+    });
+  }
+
   _hud(){
     document.getElementById('h-score').textContent=this.score;
     document.getElementById('h-level').textContent=this.lvIdx+1;
@@ -2478,10 +2622,11 @@ class Game {
       lv.platsEasy.forEach(p=>this.platforms.push(new Platform(p.x,p.y,p.w,p.h,{type:'solid',color:'#304080',glowCol:'#5080ff'})));
     }
 
-    // point 14: world floor (lava levels get a red floor)
-    this.platforms.push(new Platform(0,lv.lvH-28,lv.lvW,28,
-      lv.lava?{type:'solid',color:'#550000',glowCol:'#ff2200'}:
-               {type:'solid',color:'#3020a0',glowCol:'#7060ff'}));
+    // point 14: world floor — lava levels have no solid floor (player falls into lava)
+    if(!lv.lava){
+      this.platforms.push(new Platform(0,lv.lvH-28,lv.lvW,28,
+        {type:'solid',color:'#3020a0',glowCol:'#7060ff'}));
+    }
 
     this.coinObjs=lv.coins.map(c=>new Coin(c.x,c.y,c.t));
     this.spikes=(lv.spikes||[]).map(s=>new Spike(s.x,s.y,s.w));
@@ -2498,6 +2643,7 @@ class Game {
       .filter(cp=>this._cpHasStableGround(cp));
     this._cpX=lv.spX; this._cpY=lv.spY; this._cpFlash=0;
     this.player=new Player(lv.spX,lv.spY);
+    this.player.invT=1.2;
     this.particles=[];
     this._deathTimer=0;
     // clear drawing state on level load
@@ -2629,6 +2775,8 @@ class Game {
       for(const c of this.coinObjs){
         if(c.test(this.player.cx,this.player.cy,this.player.w,this.player.h,t)){
           c.collected=true; this.coins++;
+          this._wallet+=c.type==='gem'?5:c.type==='secret'?20:1;
+          localStorage.setItem('nr_wallet',this._wallet);
           sfx?.coin(c.type);
           // 78 — coin sparkle ring
           const scol=c.type==='secret'?'#e0c0ff':c.type==='gem'?'#00ffcc':'#ffd700';
@@ -2714,7 +2862,7 @@ class Game {
               }
             }
           }
-          if(!this.player.dead&&this.lvData.lava&&this.player.bottom>=this.lvData.lvH-30){
+          if(!this.player.dead&&this.lvData.lava&&this.player.bottom>=this.lvData.lvH-72){
             this._die();
           }
         }
