@@ -7,25 +7,21 @@
     * { margin:0; padding:0; box-sizing:border-box; }
     body { background:#000; overflow:hidden; font-family:'Segoe UI',Arial,sans-serif; }
 
-    /* ── LOADING SCREEN ─────────────────────────────── */
     #loader {
-      position:fixed; inset:0; background:#08090f;
-      display:flex; flex-direction:column;
-      align-items:center; justify-content:center; z-index:999;
+      position:fixed; inset:0; background:#08090f; z-index:999;
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
     }
     #loader h1 { color:#f0d080; font-size:48px; letter-spacing:5px; margin-bottom:10px; }
     #loader p  { color:#888; font-size:14px; margin-bottom:40px; }
     #bar-wrap  { width:320px; height:8px; background:#1a1a2a; border-radius:4px; overflow:hidden; }
-    #bar       { height:100%; width:0%; background:linear-gradient(90deg,#b08030,#f0d080); border-radius:4px; transition:width .2s; }
+    #bar       { height:100%; width:0%; background:linear-gradient(90deg,#b08030,#f0d080); border-radius:4px; transition:width .18s; }
     #bar-lbl   { color:#666; font-size:12px; margin-top:12px; }
 
-    /* ── HUD ──────────────────────────────────────────── */
     #hud {
       position:absolute; top:18px; left:50%; transform:translateX(-50%);
       display:none; gap:28px; color:#fff; font-size:15px; font-weight:600;
       background:rgba(0,0,0,0.45); padding:9px 28px; border-radius:24px;
-      border:1px solid rgba(255,255,255,0.15); pointer-events:none;
-      backdrop-filter:blur(6px);
+      border:1px solid rgba(255,255,255,0.15); pointer-events:none; backdrop-filter:blur(6px);
     }
     #hud span { color:#f0d080; }
     #minimap {
@@ -34,10 +30,9 @@
       border-radius:8px; overflow:hidden; display:none;
     }
     #controls {
-      position:absolute; bottom:22px; left:20px;
+      position:absolute; bottom:22px; left:20px; display:none;
       color:rgba(255,255,255,0.6); font-size:13px; line-height:2;
-      background:rgba(0,0,0,0.4); padding:8px 14px; border-radius:8px;
-      pointer-events:none; display:none;
+      background:rgba(0,0,0,0.4); padding:8px 14px; border-radius:8px; pointer-events:none;
     }
     #overlay {
       position:absolute; inset:0; display:none;
@@ -64,7 +59,6 @@
 </head>
 <body>
 
-<!-- LOADING SCREEN -->
 <div id="loader">
   <h1>CITY DRIVE</h1>
   <p>Loading city...</p>
@@ -72,7 +66,6 @@
   <div id="bar-lbl">Initializing...</div>
 </div>
 
-<!-- HUD -->
 <div id="hud">
   Speed: <span id="spd">0</span> km/h &nbsp;|&nbsp;
   Score: <span id="sc">0</span> &nbsp;|&nbsp;
@@ -81,7 +74,6 @@
 <div id="minimap"><canvas id="mmCanvas" width="140" height="140"></canvas></div>
 <div id="controls">W / ⬆ — Gas<br>S / ⬇ — Brake<br>A / ⬅ — Left<br>D / ➡ — Right</div>
 
-<!-- START / GAME OVER OVERLAY -->
 <div id="overlay">
   <div id="startPanel" class="panel">
     <h1>CITY DRIVE</h1>
@@ -99,118 +91,209 @@
   </div>
 </div>
 
+<!-- ═══════════════════════════════════════════════════════════════
+     SCRIPTS — dependency order matters
+     ════════════════════════════════════════════════════════════ -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/RGBELoader.js"></script>
+<!-- Post-processing — CopyShader + LuminosityHighPassShader must precede the passes that need them -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+<!-- SMAAPass intentionally excluded: it loads external textures that block on file:// URLs -->
+
 <script>
-// ═══════════════════════════════════════
-// RENDERER
-// ═══════════════════════════════════════
+'use strict';
+
+// ════════════════════════════════════════════════════════════════
+// ① ASSET PLACEHOLDERS
+//    Swap any null / URL below with your own files.
+// ════════════════════════════════════════════════════════════════
+
+// Player car .glb model.
+// Currently uses the Three.js Ferrari demo so you can test immediately.
+// Replace with your own path:  'models/car.glb'
+const CAR_MODEL_URL = 'https://threejs.org/examples/models/gltf/ferrari.glb';
+
+// HDR environment map (.hdr) for Image-Based Lighting.
+// null = procedural sky + manual lights (always works, no download needed).
+// Set a path once you have a .hdr file:  'hdr/venice_sunset_1k.hdr'
+// Free HDRIs: https://polyhaven.com/hdris  (download "1k", outdoor/city)
+const HDR_URL = null;
+
+// PBR texture sets for road, sidewalk, and building walls.
+// Each key accepts a URL string or null (null = solid color fallback, no texture).
+// Free PBR textures: https://polyhaven.com/textures
+const TEX = {
+  asphalt: {
+    map:          null,  // 'textures/asphalt/color.jpg'
+    normalMap:    null,  // 'textures/asphalt/normal.jpg'
+    roughnessMap: null,  // 'textures/asphalt/roughness.jpg'
+  },
+  concrete: {
+    map:          null,  // 'textures/concrete/color.jpg'
+    normalMap:    null,  // 'textures/concrete/normal.jpg'
+    roughnessMap: null,  // 'textures/concrete/roughness.jpg'
+  },
+  wall: {
+    map:          null,  // 'textures/brick/color.jpg'
+    normalMap:    null,  // 'textures/brick/normal.jpg'
+    roughnessMap: null,  // 'textures/brick/roughness.jpg'
+  },
+};
+
+// ════════════════════════════════════════════════════════════════
+// ② RENDERER
+// ════════════════════════════════════════════════════════════════
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
 renderer.setSize(innerWidth, innerHeight);
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.shadowMap.enabled  = true;
+renderer.shadowMap.type     = THREE.PCFSoftShadowMap;
+renderer.toneMapping        = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.0;
+renderer.physicallyCorrectLights = true;
 document.body.appendChild(renderer.domElement);
-renderer.domElement.style.display = 'none'; // hidden until load completes
+renderer.domElement.style.display = 'none'; // revealed after load
 
 const scene  = new THREE.Scene();
 scene.fog    = new THREE.Fog(0xc8bfb0, 70, 260);
 
+// IMPORTANT: camera must NOT start at (0,0,0) — that puts it inside the car,
+// backface culling makes the car invisible. Start offset behind spawn point.
 const camera = new THREE.PerspectiveCamera(65, innerWidth / innerHeight, 0.1, 500);
 camera.position.set(0, 5, 12);
+
+// ════════════════════════════════════════════════════════════════
+// ③ POST-PROCESSING  (RenderPass → UnrealBloomPass)
+//    Wrapped in try/catch — if any CDN script failed, the game
+//    falls back to plain renderer.render() silently.
+//    Anti-aliasing: renderer's hardware antialias:true (no extra pass needed).
+//    SMAAPass excluded — it crashes on file:// due to external texture deps.
+// ════════════════════════════════════════════════════════════════
+let composer = null, useComposer = false;
+try {
+  composer = new THREE.EffectComposer(renderer);
+  composer.addPass(new THREE.RenderPass(scene, camera));
+
+  const bloom = new THREE.UnrealBloomPass(
+    new THREE.Vector2(innerWidth, innerHeight),
+    0.55,   // strength  — 0.3 subtle · 1.2 dramatic
+    0.5,    // radius    — 0 tight halo · 1 wide feather
+    0.72    // threshold — lower value = more surfaces glow
+  );
+  bloom.renderToScreen = true; // last pass → writes to canvas
+  composer.addPass(bloom);
+  useComposer = true;
+} catch (e) {
+  console.warn('EffectComposer unavailable, using fallback render:', e);
+}
 
 window.addEventListener('resize', () => {
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
+  if (composer) composer.setSize(innerWidth, innerHeight);
 });
 
-// ═══════════════════════════════════════
-// PROGRESS HELPERS
-// ═══════════════════════════════════════
-const barEl = document.getElementById('bar');
-const lblEl = document.getElementById('bar-lbl');
-function setProgress(pct, msg) {
-  barEl.style.width = pct + '%';
-  lblEl.textContent = msg;
-}
-function defer(fn) { return new Promise(r => setTimeout(() => { fn(); r(); }, 0)); }
-
-// ═══════════════════════════════════════
-// CITY CONSTANTS
-// ═══════════════════════════════════════
-const CITY   = 160;
-const BLOCK  = 40;
-const ROAD_W = 10;
-const BLKSZ  = BLOCK - ROAD_W; // 30
-
-// ═══════════════════════════════════════
-// MATERIAL FACTORIES
-// ═══════════════════════════════════════
-const bm  = c => new THREE.MeshBasicMaterial({ color: c });
+// ════════════════════════════════════════════════════════════════
+// ④ MATERIAL HELPERS
+// ════════════════════════════════════════════════════════════════
+const bm  = c       => new THREE.MeshBasicMaterial({ color: c });
 const sm  = (c, o={}) => new THREE.MeshStandardMaterial({ color: c, ...o });
 const phm = (c, o={}) => new THREE.MeshPhysicalMaterial({ color: c, ...o });
 
-// 4 shared window textures (reused across all buildings — no per-building texture)
+// Road-marking materials — MeshBasicMaterial is always visible, no lighting needed
+const dashMat  = bm(0xe8d840);
+const whiteMat = bm(0xf0f0e8);
+
+// 4 shared canvas window textures — reused across ALL buildings to stay under WebGL limits
 function makeWinTex(lit, dark) {
   const cv = document.createElement('canvas'); cv.width = 64; cv.height = 128;
   const ctx = cv.getContext('2d');
   ctx.fillStyle = '#555'; ctx.fillRect(0, 0, 64, 128);
   for (let r = 0; r < 6; r++) for (let c2 = 0; c2 < 3; c2++) {
-    ctx.fillStyle = Math.random() > 0.45 ? lit : (Math.random() > 0.4 ? dark : '#2a3848');
+    ctx.fillStyle = Math.random() > 0.45 ? lit : Math.random() > 0.4 ? dark : '#2a3848';
     ctx.fillRect(3 + c2 * 21, 4 + r * 21, 16, 14);
   }
   return new THREE.CanvasTexture(cv);
 }
-const WIN_TEXTURES = [
+const WIN_TEX = [
   makeWinTex('#ffecc0', '#1a2030'),
   makeWinTex('#fff0d0', '#1e2a3a'),
   makeWinTex('#e0e8f0', '#151e2a'),
   makeWinTex('#ffe8b0', '#20253a'),
 ];
 
-const dashMat  = bm(0xe8d840);
-const whiteMat = bm(0xf0f0e8);
+// PBR loader — returns { map, normalMap, roughnessMap } (nulls when URL not set)
+function loadPBR(slot, ru = 4, rv = 4) {
+  const tl = new THREE.TextureLoader();
+  const load = (url, linear) => {
+    if (!url) return null;
+    const t = tl.load(url);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.repeat.set(ru, rv);
+    if (linear) t.encoding = THREE.LinearEncoding; // normal/roughness must NOT be sRGB
+    return t;
+  };
+  return {
+    map:          load(slot.map, false),
+    normalMap:    load(slot.normalMap, true),
+    roughnessMap: load(slot.roughnessMap, true),
+  };
+}
+const PBR_ASPHALT  = loadPBR(TEX.asphalt,  8, 8);
+const PBR_CONCRETE = loadPBR(TEX.concrete, 4, 4);
+const PBR_WALL     = loadPBR(TEX.wall,     2, 4);
 
-// ═══════════════════════════════════════
-// CAR FACTORY — MeshPhysicalMaterial
-// ═══════════════════════════════════════
+// ════════════════════════════════════════════════════════════════
+// ⑤ CITY CONSTANTS
+// ════════════════════════════════════════════════════════════════
+const CITY = 160, BLOCK = 40, ROAD_W = 10, BLKSZ = 30;
+
+// ════════════════════════════════════════════════════════════════
+// ⑥ PROCEDURAL CAR FACTORY  (used for enemy traffic)
+//    Player car is loaded via GLTFLoader; enemies use this.
+// ════════════════════════════════════════════════════════════════
 function buildCar(color) {
   const g = new THREE.Group();
-  const paintMat  = phm(color, { metalness:0.8, roughness:0.2, clearcoat:1.0, clearcoatRoughness:0.08 });
-  const darkC = new THREE.Color(color).multiplyScalar(0.42);
-  const cabinMat  = phm(darkC.getHex(), { metalness:0.7, roughness:0.3, clearcoat:0.8, clearcoatRoughness:0.1 });
-  const glassMat  = phm(0xaaccdd, { metalness:0, roughness:0.05, transmission:0.85, opacity:0.4, transparent:true, side:THREE.DoubleSide });
-  const tyreMat   = sm(0x0a0a0a, { roughness:0.95 });
-  const rimMat    = phm(0xddddee, { metalness:0.95, roughness:0.1 });
-  const chassisMat= sm(0x1a1a1a, { roughness:0.9 });
-  const bumpMat   = sm(0x222222, { roughness:0.8 });
-  const headMat   = bm(0xffffee);
-  const brakesMat = bm(0xff1a00);
+  const paintMat   = phm(color, { metalness:0.8, roughness:0.2, clearcoat:1.0, clearcoatRoughness:0.08 });
+  const darkC      = new THREE.Color(color).multiplyScalar(0.42);
+  const cabinMat   = phm(darkC.getHex(), { metalness:0.7, roughness:0.3, clearcoat:0.8, clearcoatRoughness:0.1 });
+  const glassMat   = phm(0xaaccdd, { metalness:0, roughness:0.05, transmission:0.85, opacity:0.4, transparent:true, side:THREE.DoubleSide });
+  const tyreMat    = sm(0x0a0a0a, { roughness:0.95 });
+  const rimMat     = phm(0xddddee, { metalness:0.95, roughness:0.1 });
+  const chassisMat = sm(0x1a1a1a, { roughness:0.9 });
+  const bumpMat    = sm(0x222222, { roughness:0.8 });
+  const headMat    = bm(0xffffee);
+  const brakesMat  = bm(0xff1a00);
 
   const add = (geo, mat, px, py, pz, rx=0, ry=0, rz=0, shadow=true) => {
     const m = new THREE.Mesh(geo, mat);
     m.position.set(px, py, pz); m.rotation.set(rx, ry, rz);
     if (shadow) m.castShadow = true;
-    g.add(m); return m;
+    g.add(m);
   };
 
-  add(new THREE.BoxGeometry(1.88, 0.28, 3.9), chassisMat, 0, 0.18, 0);
-  add(new THREE.BoxGeometry(1.88, 0.62, 3.9), paintMat,   0, 0.52, 0);
-  add(new THREE.BoxGeometry(1.8,  0.2,  1.1), paintMat,   0, 0.84, -1.55, 0.18);
-  add(new THREE.BoxGeometry(1.58, 0.58, 2.1), cabinMat,   0, 1.1,   0.1);
+  add(new THREE.BoxGeometry(1.88, 0.28, 3.9),  chassisMat, 0, 0.18,  0);
+  add(new THREE.BoxGeometry(1.88, 0.62, 3.9),  paintMat,   0, 0.52,  0);
+  add(new THREE.BoxGeometry(1.8,  0.2,  1.1),  paintMat,   0, 0.84, -1.55, 0.18);
+  add(new THREE.BoxGeometry(1.58, 0.58, 2.1),  cabinMat,   0, 1.1,   0.1);
   add(new THREE.PlaneGeometry(1.42, 0.52), glassMat, 0, 1.1, -0.9, -0.38, 0, 0, false);
   add(new THREE.PlaneGeometry(1.42, 0.52), glassMat, 0, 1.1,  1.1,  0.38, 0, 0, false);
   [-0.8, 0.8].forEach(sx => add(new THREE.PlaneGeometry(1.85, 0.42), glassMat, sx, 1.1, 0.1, 0, Math.PI/2, 0, false));
   add(new THREE.BoxGeometry(1.7, 0.22, 0.14), bumpMat, 0, 0.28, -2.06);
   add(new THREE.BoxGeometry(1.7, 0.22, 0.14), bumpMat, 0, 0.28,  2.06);
   [-0.96, 0.96].forEach(sx => add(new THREE.BoxGeometry(0.08, 0.14, 0.22), paintMat, sx, 0.95, -0.55));
-  const tyreGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.28, 12);
-  const rimGeo  = new THREE.CylinderGeometry(0.20, 0.20, 0.29, 8);
-  [[-1.0, 1.2], [1.0, 1.2], [-1.0, -1.2], [1.0, -1.2]].forEach(([wx, wz]) => {
-    add(tyreGeo, tyreMat, wx, 0.35, wz, 0, 0, Math.PI/2);
-    add(rimGeo,  rimMat,  wx, 0.35, wz, 0, 0, Math.PI/2);
+  const tyG = new THREE.CylinderGeometry(0.35, 0.35, 0.28, 12);
+  const riG = new THREE.CylinderGeometry(0.20, 0.20, 0.29,  8);
+  [[-1, 1.2], [1, 1.2], [-1, -1.2], [1, -1.2]].forEach(([wx, wz]) => {
+    add(tyG, tyreMat, wx, 0.35, wz, 0, 0, Math.PI/2);
+    add(riG, rimMat,  wx, 0.35, wz, 0, 0, Math.PI/2);
   });
   [-0.52, 0.52].forEach(lx => {
     add(new THREE.BoxGeometry(0.3, 0.14, 0.06), headMat,   lx, 0.56, -2.04);
@@ -219,76 +302,123 @@ function buildCar(color) {
   return g;
 }
 
-// ═══════════════════════════════════════
-// ASYNC CITY BUILDER
-// ═══════════════════════════════════════
+// ════════════════════════════════════════════════════════════════
+// ⑦ LOADING PROGRESS
+// ════════════════════════════════════════════════════════════════
+const barEl = document.getElementById('bar');
+const lblEl = document.getElementById('bar-lbl');
+function setProgress(pct, msg) { barEl.style.width = pct + '%'; lblEl.textContent = msg; }
+function defer(fn) { return new Promise(r => setTimeout(() => { fn(); r(); }, 0)); }
+
+// ════════════════════════════════════════════════════════════════
+// ⑧ ASYNC CITY BUILDER
+// ════════════════════════════════════════════════════════════════
 async function buildCity() {
 
-  await defer(() => {
-    setProgress(5, 'Setting up lighting...');
-    scene.add(new THREE.HemisphereLight(0x88aacc, 0x443322, 0.6));
-    scene.add(new THREE.AmbientLight(0xfff8f0, 0.55));
+  // ── LIGHTING + SKY ──────────────────────────────────────────────
+  // HDR path: scene.environment drives PBR reflections on all materials.
+  // Procedural path: hemisphere + ambient + directional sun.
+  await new Promise(resolve => {
+    function makeSun(intensity) {
+      const sun = new THREE.DirectionalLight(0xffe8c0, intensity);
+      sun.position.set(80, 120, 60);
+      sun.castShadow = true;
+      sun.shadow.mapSize.set(2048, 2048);
+      sun.shadow.camera.left   = -90; sun.shadow.camera.right  =  90;
+      sun.shadow.camera.top    =  90; sun.shadow.camera.bottom = -90;
+      sun.shadow.camera.near   = 1;   sun.shadow.camera.far    = 300;
+      sun.shadow.bias          = -0.0005;
+      sun.shadow.normalBias    = 0.02;
+      return sun;
+    }
+
+    function buildFallbackSky() {
+      setProgress(5, 'Setting up lighting...');
+      scene.add(new THREE.HemisphereLight(0x88aacc, 0x443322, 0.6));
+      scene.add(new THREE.AmbientLight(0xfff8f0, 0.55));
+      // Gradient sky sphere — replaced by HDR panorama when HDR_URL is active
+      const cv = document.createElement('canvas'); cv.width = 2; cv.height = 512;
+      const cx = cv.getContext('2d');
+      const g  = cx.createLinearGradient(0, 0, 0, 512);
+      g.addColorStop(0,    '#3a6090');
+      g.addColorStop(0.3,  '#6888b0');
+      g.addColorStop(0.65, '#a0aab8');
+      g.addColorStop(0.85, '#c8bfb0');
+      g.addColorStop(1,    '#d8c8a8');
+      cx.fillStyle = g; cx.fillRect(0, 0, 2, 512);
+      scene.add(new THREE.Mesh(
+        new THREE.SphereGeometry(450, 16, 8),
+        new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cv), side: THREE.BackSide })
+      ));
+      const sun = makeSun(2.5);
+      scene.add(sun); scene.add(sun.target);
+      window._sun = sun;
+      const fill = new THREE.DirectionalLight(0xb0c8e0, 0.5);
+      fill.position.set(-50, 60, -40); scene.add(fill);
+    }
+
+    if (HDR_URL) {
+      setProgress(5, 'Loading HDR environment...');
+      const pmrem = new THREE.PMREMGenerator(renderer);
+      pmrem.compileEquirectangularShader();
+      new THREE.RGBELoader().load(
+        HDR_URL,
+        hdrTex => {
+          const envMap = pmrem.fromEquirectangular(hdrTex).texture;
+          scene.environment = envMap; // IBL reflections + ambient on all PBR materials
+          scene.background  = envMap; // HDR panorama replaces the gradient sky
+          hdrTex.dispose(); pmrem.dispose();
+          // Sun intensity lower when HDR provides ambient — avoids overexposure
+          const sun = makeSun(1.6);
+          scene.add(sun); scene.add(sun.target);
+          window._sun = sun;
+          setProgress(15, 'HDR loaded.');
+          resolve();
+        },
+        xhr => setProgress(5 + Math.round((xhr.loaded / (xhr.total || 1)) * 8), 'Loading HDR...'),
+        err => { console.warn('HDR failed, using procedural sky:', err); buildFallbackSky(); resolve(); }
+      );
+    } else {
+      buildFallbackSky();
+      resolve();
+    }
   });
 
-  await defer(() => {
-    setProgress(10, 'Building sky...');
-    const cv = document.createElement('canvas'); cv.width = 2; cv.height = 512;
-    const cx = cv.getContext('2d');
-    const g  = cx.createLinearGradient(0, 0, 0, 512);
-    g.addColorStop(0,    '#3a6090');
-    g.addColorStop(0.3,  '#6888b0');
-    g.addColorStop(0.65, '#a0aab8');
-    g.addColorStop(0.85, '#c8bfb0');
-    g.addColorStop(1,    '#d8c8a8');
-    cx.fillStyle = g; cx.fillRect(0, 0, 2, 512);
-    scene.add(new THREE.Mesh(
-      new THREE.SphereGeometry(450, 16, 8),
-      new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cv), side: THREE.BackSide })
-    ));
-  });
-
-  await defer(() => {
-    setProgress(15, 'Placing sun...');
-    const sun = new THREE.DirectionalLight(0xffe8c0, 2.5);
-    sun.position.set(80, 120, 60);
-    sun.castShadow = true;
-    sun.shadow.mapSize.set(2048, 2048);
-    sun.shadow.camera.left   = -90;
-    sun.shadow.camera.right  =  90;
-    sun.shadow.camera.top    =  90;
-    sun.shadow.camera.bottom = -90;
-    sun.shadow.camera.near   = 1;
-    sun.shadow.camera.far    = 300;
-    sun.shadow.bias          = -0.0005;
-    sun.shadow.normalBias    = 0.02;
-    scene.add(sun); scene.add(sun.target);
-    window._sun = sun;
-    const fill = new THREE.DirectionalLight(0xb0c8e0, 0.5);
-    fill.position.set(-50, 60, -40); scene.add(fill);
-  });
-
+  // ── GROUND (asphalt) ────────────────────────────────────────────
   await defer(() => {
     setProgress(20, 'Paving roads...');
     const ground = new THREE.Mesh(
       new THREE.PlaneGeometry(CITY * 2, CITY * 2),
-      sm(0x1c1c1c, { roughness: 0.88, metalness: 0.08 })
+      sm(0x1c1c1c, {
+        roughness:    0.88, metalness: 0.08,
+        map:          PBR_ASPHALT.map,          // 'textures/asphalt/color.jpg'
+        normalMap:    PBR_ASPHALT.normalMap,    // 'textures/asphalt/normal.jpg'
+        roughnessMap: PBR_ASPHALT.roughnessMap, // 'textures/asphalt/roughness.jpg'
+      })
     );
     ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
   });
 
+  // ── SIDEWALKS (concrete pads) ────────────────────────────────────
   await defer(() => {
     setProgress(28, 'Pouring concrete...');
-    const mat = sm(0x787870, { roughness: 0.95 });
+    const mat = sm(0x787870, {
+      roughness:    0.95,
+      map:          PBR_CONCRETE.map,
+      normalMap:    PBR_CONCRETE.normalMap,
+      roughnessMap: PBR_CONCRETE.roughnessMap,
+    });
     const geo = new THREE.BoxGeometry(BLKSZ, 0.15, BLKSZ);
     for (let bx = -CITY; bx < CITY; bx += BLOCK) {
       for (let bz = -CITY; bz < CITY; bz += BLOCK) {
         const m = new THREE.Mesh(geo, mat);
-        m.position.set(bx + BLKSZ/2, 0.075, bz + BLKSZ/2);
+        m.position.set(bx + BLKSZ / 2, 0.075, bz + BLKSZ / 2);
         m.receiveShadow = true; scene.add(m);
       }
     }
   });
 
+  // ── ROAD MARKINGS (MeshBasicMaterial — always visible) ───────────
   await defer(() => {
     setProgress(36, 'Painting road markings...');
     const dg = new THREE.PlaneGeometry(4, 0.18);
@@ -301,126 +431,160 @@ async function buildCity() {
         const v = new THREE.Mesh(vg, dashMat); v.rotation.x = -Math.PI/2; v.position.set(r+ROAD_W/2, 0.02, d+2); scene.add(v);
       }
       for (let s = -CITY; s < CITY; s += BLOCK) {
-        const w1 = new THREE.Mesh(hg, whiteMat); w1.rotation.x=-Math.PI/2; w1.position.set(s+BLOCK/2, 0.02, r+0.28); scene.add(w1);
+        const w1 = new THREE.Mesh(hg, whiteMat); w1.rotation.x = -Math.PI/2; w1.position.set(s+BLOCK/2, 0.02, r+0.28); scene.add(w1);
         const w2 = w1.clone(); w2.position.z = r+ROAD_W-0.28; scene.add(w2);
-        const v1 = new THREE.Mesh(lg, whiteMat); v1.rotation.x=-Math.PI/2; v1.position.set(r+0.28, 0.02, s+BLOCK/2); scene.add(v1);
+        const v1 = new THREE.Mesh(lg, whiteMat); v1.rotation.x = -Math.PI/2; v1.position.set(r+0.28, 0.02, s+BLOCK/2); scene.add(v1);
         const v2 = v1.clone(); v2.position.x = r+ROAD_W-0.28; scene.add(v2);
       }
     }
   });
 
-  // Buildings — chunked so browser doesn't freeze
-  const BLD_COLORS = [0x8a7060,0x6a7880,0x909080,0x5a6878,0x787060,0x686058,0x7a8070,0x887060];
+  // ── BUILDINGS (chunked — 2 columns per frame to avoid freezing) ──
+  const BLD_C   = [0x8a7060, 0x6a7880, 0x909080, 0x5a6878, 0x787060, 0x686058, 0x7a8070, 0x887060];
   const roofMat = sm(0x404040, { roughness: 0.95 });
-  const bxCols = []; for (let bx = -CITY; bx < CITY; bx += BLOCK) bxCols.push(bx);
+  const bxCols  = []; for (let bx = -CITY; bx < CITY; bx += BLOCK) bxCols.push(bx);
 
   for (let i = 0; i < bxCols.length; i += 2) {
     const chunk = bxCols.slice(i, i + 2);
-    const pct = 40 + Math.round((i / bxCols.length) * 32);
     await defer(() => {
-      setProgress(pct, 'Building city blocks...');
+      setProgress(40 + Math.round((i / bxCols.length) * 32), 'Building city blocks...');
       for (const bx of chunk) {
         for (let bz = -CITY; bz < CITY; bz += BLOCK) {
           if (Math.random() < 0.1) continue;
-          const col = BLD_COLORS[Math.floor(Math.random() * BLD_COLORS.length)];
+          const col = BLD_C[Math.floor(Math.random() * BLD_C.length)];
           const bw  = 7 + Math.random() * (BLKSZ - 16);
           const bh  = 8 + Math.random() * 30;
           const bd  = 7 + Math.random() * (BLKSZ - 16);
-          const cx  = bx + BLKSZ/2 + (Math.random()-0.5) * Math.max(0, BLKSZ-bw-4);
-          const cz  = bz + BLKSZ/2 + (Math.random()-0.5) * Math.max(0, BLKSZ-bd-4);
-          const wt  = WIN_TEXTURES[Math.floor(Math.random() * WIN_TEXTURES.length)];
+          const cx  = bx + BLKSZ/2 + (Math.random() - 0.5) * Math.max(0, BLKSZ - bw - 4);
+          const cz  = bz + BLKSZ/2 + (Math.random() - 0.5) * Math.max(0, BLKSZ - bd - 4);
+          const wt  = WIN_TEX[Math.floor(Math.random() * WIN_TEX.length)];
+          // Wall sides: PBR texture takes priority; window canvas is the fallback
+          const wallOpts = {
+            roughness:    0.88, metalness: 0.02,
+            map:          PBR_WALL.map || wt,   // 'textures/brick/color.jpg'
+            normalMap:    PBR_WALL.normalMap,   // 'textures/brick/normal.jpg'
+            roughnessMap: PBR_WALL.roughnessMap,// 'textures/brick/roughness.jpg'
+          };
           const mats = [
-            sm(col, { roughness:0.88, metalness:0.02, map:wt }),
-            sm(col, { roughness:0.88, metalness:0.02, map:wt }),
-            sm(col, { roughness:0.92, metalness:0.02 }),
-            roofMat,
-            sm(col, { roughness:0.88, metalness:0.02, map:wt }),
-            sm(col, { roughness:0.88, metalness:0.02, map:wt }),
+            sm(col, wallOpts), sm(col, wallOpts), // +X / -X
+            sm(col, { roughness:0.92, metalness:0.02 }), // top
+            roofMat,                               // bottom
+            sm(col, wallOpts), sm(col, wallOpts), // +Z / -Z
           ];
           const body = new THREE.Mesh(new THREE.BoxGeometry(bw, bh, bd), mats);
-          body.position.set(cx, bh/2+0.15, cz);
+          body.position.set(cx, bh / 2 + 0.15, cz);
           body.castShadow = true; body.receiveShadow = true; scene.add(body);
-          const roof = new THREE.Mesh(new THREE.BoxGeometry(bw+0.3, 0.4, bd+0.3), roofMat);
-          roof.position.set(cx, bh+0.35, cz); roof.castShadow = true; scene.add(roof);
+          const roof = new THREE.Mesh(new THREE.BoxGeometry(bw + 0.3, 0.4, bd + 0.3), roofMat);
+          roof.position.set(cx, bh + 0.35, cz); roof.castShadow = true; scene.add(roof);
         }
       }
     });
   }
 
+  // ── TREES ────────────────────────────────────────────────────────
   await defer(() => {
     setProgress(74, 'Planting trees...');
-    const tMat = sm(0x3a2010, { roughness:1.0 });
-    const lMat = sm(0x253518, { roughness:1.0 });
+    const tMat = sm(0x3a2010, { roughness: 1.0 });
+    const lMat = sm(0x253518, { roughness: 1.0 });
     const tg = new THREE.CylinderGeometry(0.18, 0.28, 3.5, 6);
     const lg = new THREE.ConeGeometry(1.4, 1.6, 7);
     for (let r = -CITY; r < CITY; r += BLOCK) {
-      for (let d = -CITY+5; d < CITY; d += 18) {
-        [[r-ROAD_W+2, d+4], [d+4, r-ROAD_W+2]].forEach(([x, z]) => {
-          const t = new THREE.Mesh(tg, tMat); t.position.set(x, 1.75, z); t.castShadow=true; scene.add(t);
-          const l = new THREE.Mesh(lg, lMat); l.position.set(x, 4.5,  z); l.castShadow=true; scene.add(l);
+      for (let d = -CITY + 5; d < CITY; d += 18) {
+        [[r - ROAD_W + 2, d + 4], [d + 4, r - ROAD_W + 2]].forEach(([x, z]) => {
+          const t = new THREE.Mesh(tg, tMat); t.position.set(x, 1.75, z); t.castShadow = true; scene.add(t);
+          const l = new THREE.Mesh(lg, lMat); l.position.set(x, 4.5,  z); l.castShadow = true; scene.add(l);
         });
       }
     }
   });
 
+  // ── STREETLIGHTS ─────────────────────────────────────────────────
   await defer(() => {
     setProgress(84, 'Installing streetlights...');
-    const stMat = sm(0x888888, { roughness:0.45, metalness:0.85 });
-    const blMat = bm(0xffe090);
+    const stMat = sm(0x888888, { roughness: 0.45, metalness: 0.85 });
+    const blMat = bm(0xffe090); // sodium-yellow emissive bulb (BasicMaterial glows with bloom)
     const pg = new THREE.CylinderGeometry(0.08, 0.12, 5.5, 7);
     const ag = new THREE.CylinderGeometry(0.05, 0.05, 2.0, 5);
     const hg = new THREE.BoxGeometry(0.5, 0.18, 0.5);
     for (let r = -CITY; r < CITY; r += BLOCK) {
-      for (let d = -CITY+5; d < CITY; d += 28) {
-        [[r-ROAD_W+1.5, d], [d, r-ROAD_W+1.5]].forEach(([px, pz]) => {
-          const pole = new THREE.Mesh(pg, stMat); pole.position.set(px, 2.75, pz); pole.castShadow=true; scene.add(pole);
-          const arm  = new THREE.Mesh(ag, stMat); arm.rotation.z=Math.PI/2; arm.position.set(px+1.0, 5.6, pz); scene.add(arm);
-          const hood = new THREE.Mesh(hg, stMat); hood.position.set(px+2.0, 5.55, pz); scene.add(hood);
-          const bulb = new THREE.Mesh(new THREE.PlaneGeometry(0.36,0.36), blMat);
-          bulb.rotation.x=Math.PI/2; bulb.position.set(px+2.0, 5.44, pz); scene.add(bulb);
+      for (let d = -CITY + 5; d < CITY; d += 28) {
+        [[r - ROAD_W + 1.5, d], [d, r - ROAD_W + 1.5]].forEach(([px, pz]) => {
+          const pole = new THREE.Mesh(pg, stMat); pole.position.set(px, 2.75, pz); pole.castShadow = true; scene.add(pole);
+          const arm  = new THREE.Mesh(ag, stMat); arm.rotation.z = Math.PI/2; arm.position.set(px + 1.0, 5.6, pz); scene.add(arm);
+          const hood = new THREE.Mesh(hg, stMat); hood.position.set(px + 2.0, 5.55, pz); scene.add(hood);
+          const bulb = new THREE.Mesh(new THREE.PlaneGeometry(0.36, 0.36), blMat);
+          bulb.rotation.x = Math.PI/2; bulb.position.set(px + 2.0, 5.44, pz); scene.add(bulb);
         });
       }
     }
   });
 
-  await defer(() => {
-    setProgress(92, 'Building your car...');
-    const car = buildCar(0x1a3a6a);
-    scene.add(car);
-    window._playerCar = car;
+  // ── PLAYER CAR — GLTF model with procedural fallback ─────────────
+  await new Promise(resolve => {
+    setProgress(92, 'Loading car model...');
+    new THREE.GLTFLoader().load(
+      CAR_MODEL_URL,
+      gltf => {
+        const model = gltf.scene;
+        model.scale.set(0.95, 0.95, 0.95);
+        model.rotation.y = Math.PI; // Ferrari faces +Z by default; rotate to face -Z
+        model.traverse(child => {
+          if (!child.isMesh) return;
+          child.castShadow = true;
+          child.receiveShadow = true;
+          if (child.material && child.material.isMeshStandardMaterial)
+            child.material.envMapIntensity = 1.2;
+        });
+        scene.add(model);
+        window._playerCar = model;
+        setProgress(98, 'Almost ready...');
+        resolve();
+      },
+      xhr => {
+        const pct = xhr.total ? xhr.loaded / xhr.total : 0;
+        setProgress(92 + Math.round(pct * 6), 'Downloading car model...');
+      },
+      err => {
+        console.warn('GLTF failed, using procedural car:', err);
+        const car = buildCar(0x1a3a6a);
+        scene.add(car);
+        window._playerCar = car;
+        resolve();
+      }
+    );
   });
 
   setProgress(100, 'Ready!');
   await new Promise(r => setTimeout(r, 350));
 }
 
-// ═══════════════════════════════════════
-// GAME STATE
-// ═══════════════════════════════════════
+// ════════════════════════════════════════════════════════════════
+// ⑨ GAME STATE  (logic identical to original — do not modify)
+// ════════════════════════════════════════════════════════════════
 let carAngle = 0, carSpeed = 0;
 let lives = 3, score = 0;
 let gameRunning = false, crashed = false, flashTimer = 0;
 
-const ECOLORS = [0x8a2020,0x1a4020,0xc09020,0x302060,0xdddddd,0x703010,0x204060,0x602020];
+const ECOLORS = [0x8a2020, 0x1a4020, 0xc09020, 0x302060, 0xdddddd, 0x703010, 0x204060, 0x602020];
 const enemies = [];
 let enemyTimer = 0;
 
 function spawnEnemy() {
   if (enemies.length >= 22) return;
-  const car = buildCar(ECOLORS[Math.floor(Math.random() * ECOLORS.length)]);
+  const car  = buildCar(ECOLORS[Math.floor(Math.random() * ECOLORS.length)]);
   const axis = Math.random() > 0.5;
   const ri   = Math.floor(Math.random() * (CITY / BLOCK));
   const rc   = -CITY + ri * BLOCK + ROAD_W / 2;
   const pos  = (Math.random() - 0.5) * CITY * 1.5;
   const spd  = 0.06 + Math.random() * 0.07;
   const dir  = Math.random() > 0.5 ? 1 : -1;
-  if (axis) { car.position.set(rc, 0, pos); car.userData.vx=0; car.userData.vz=dir*spd; car.rotation.y=dir>0?Math.PI:0; }
-  else      { car.position.set(pos, 0, rc); car.userData.vx=dir*spd; car.userData.vz=0; car.rotation.y=dir>0?Math.PI/2:-Math.PI/2; }
+  if (axis) { car.position.set(rc, 0, pos); car.userData.vx = 0;       car.userData.vz = dir*spd; car.rotation.y = dir>0 ? Math.PI : 0; }
+  else      { car.position.set(pos, 0, rc); car.userData.vx = dir*spd; car.userData.vz = 0;       car.rotation.y = dir>0 ? Math.PI/2 : -Math.PI/2; }
   scene.add(car); enemies.push(car);
 }
 
 const keys = {};
-document.addEventListener('keydown', e => { keys[e.key] = true; e.preventDefault(); });
+document.addEventListener('keydown', e => { keys[e.key] = true;  e.preventDefault(); });
 document.addEventListener('keyup',   e => { keys[e.key] = false; });
 
 const mmCtx = document.getElementById('mmCanvas').getContext('2d');
@@ -437,17 +601,17 @@ function drawMinimap() {
   const pc = window._playerCar;
   const px = (pc.position.x+CITY)*S, pz = (pc.position.z+CITY)*S;
   mmCtx.fillStyle = '#80b8ff';
-  mmCtx.beginPath(); mmCtx.arc(px, pz, 5, 0, Math.PI*2); mmCtx.fill();
+  mmCtx.beginPath(); mmCtx.arc(px, pz, 5, 0, Math.PI * 2); mmCtx.fill();
   mmCtx.strokeStyle = 'rgba(200,220,255,0.7)'; mmCtx.lineWidth = 1.5;
   mmCtx.beginPath(); mmCtx.moveTo(px, pz);
-  mmCtx.lineTo(px - Math.sin(carAngle)*10, pz - Math.cos(carAngle)*10);
+  mmCtx.lineTo(px - Math.sin(carAngle) * 10, pz - Math.cos(carAngle) * 10);
   mmCtx.stroke();
 }
 
 function updateHUD() {
   document.getElementById('spd').textContent = Math.abs(Math.floor(carSpeed * 140));
   document.getElementById('sc').textContent  = score;
-  const h = ['❤️','❤️','❤️'];
+  const h = ['❤️', '❤️', '❤️'];
   for (let i = 3; i > lives; i--) h[i-1] = '🖤';
   document.getElementById('lv').textContent = h.join('');
 }
@@ -461,9 +625,9 @@ function startGame() {
 }
 
 function restartGame() {
-  score=0; lives=3; carSpeed=0; carAngle=0; crashed=false; flashTimer=0;
+  score = 0; lives = 3; carSpeed = 0; carAngle = 0; crashed = false; flashTimer = 0;
   const pc = window._playerCar;
-  pc.position.set(0,0,0); pc.rotation.set(0,0,0); pc.visible = true;
+  pc.position.set(0, 0, 0); pc.rotation.set(0, 0, 0); pc.visible = true;
   enemies.forEach(e => scene.remove(e)); enemies.length = 0; enemyTimer = 0;
   document.getElementById('overlay').style.display  = 'none';
   document.getElementById('hud').style.display      = 'flex';
@@ -472,18 +636,19 @@ function restartGame() {
   updateHUD(); gameRunning = true;
 }
 
-// ═══════════════════════════════════════
-// RENDER LOOP
-// ═══════════════════════════════════════
-let prev = 0;
-let camX = 0, camY = 5, camZ = 12;
+// ════════════════════════════════════════════════════════════════
+// ⑩ RENDER LOOP
+// ════════════════════════════════════════════════════════════════
+const renderFrame = () => useComposer ? composer.render() : renderer.render(scene, camera);
+let prev = 0, camX = 0, camY = 5, camZ = 12;
 
 function animate(ts) {
   requestAnimationFrame(animate);
   const dt = Math.min((ts - prev) / 16.67, 3); prev = ts;
   const pc = window._playerCar;
-  if (!pc) { renderer.render(scene, camera); return; }
+  if (!pc) { renderFrame(); return; }
 
+  // Camera follows car with smooth lerp (instant snap during loading: lk=1)
   const tCX = pc.position.x + Math.sin(carAngle) * 12;
   const tCZ = pc.position.z + Math.cos(carAngle) * 12;
   const lk  = gameRunning ? Math.min(0.1 * dt, 1) : 1;
@@ -491,14 +656,16 @@ function animate(ts) {
   camera.position.set(camX, camY, camZ);
   camera.lookAt(pc.position.x, 0.8, pc.position.z);
 
+  // Shadow frustum tracks the player so shadows are always sharp around the car
   if (window._sun) {
     window._sun.position.set(pc.position.x + 80, 120, pc.position.z + 60);
     window._sun.target.position.copy(pc.position);
     window._sun.shadow.camera.updateProjectionMatrix();
   }
 
-  if (!gameRunning) { renderer.render(scene, camera); return; }
+  if (!gameRunning) { renderFrame(); return; }
 
+  // ── Crash flash ────────────────────────────────────────────────
   if (crashed) {
     flashTimer -= dt;
     pc.visible = Math.floor(flashTimer / 7) % 2 === 0;
@@ -506,24 +673,23 @@ function animate(ts) {
       if (lives <= 0) {
         gameRunning = false;
         document.getElementById('goScore').textContent = 'Final Score: ' + score;
-        document.getElementById('hud').style.display      = 'none';
-        document.getElementById('minimap').style.display  = 'none';
-        document.getElementById('controls').style.display = 'none';
-        document.getElementById('overlay').style.display  = 'flex';
+        ['hud', 'minimap', 'controls'].forEach(id => document.getElementById(id).style.display = 'none');
+        document.getElementById('overlay').style.display   = 'flex';
         document.getElementById('startPanel').style.display = 'none';
-        document.getElementById('goPanel').style.display   = 'flex';
+        document.getElementById('goPanel').style.display    = 'flex';
         pc.visible = true;
       } else { crashed = false; pc.visible = true; carSpeed = 0; }
     }
-    renderer.render(scene, camera); updateHUD(); drawMinimap(); return;
+    renderFrame(); updateHUD(); drawMinimap(); return;
   }
 
+  // ── Input ──────────────────────────────────────────────────────
   const up    = keys['ArrowUp']    || keys['w'] || keys['W'];
   const down  = keys['ArrowDown']  || keys['s'] || keys['S'];
   const left  = keys['ArrowLeft']  || keys['a'] || keys['A'];
   const right = keys['ArrowRight'] || keys['d'] || keys['D'];
 
-  if (up)        carSpeed = Math.min(carSpeed + 0.005 * dt, 0.5);
+  if (up)        carSpeed = Math.min(carSpeed + 0.005 * dt,  0.5);
   else if (down) carSpeed = Math.max(carSpeed - 0.008 * dt, -0.22);
   else           carSpeed *= Math.pow(0.975, dt);
 
@@ -537,12 +703,14 @@ function animate(ts) {
   pc.rotation.y  = carAngle;
   pc.rotation.z  = (left ? 0.06 : right ? -0.06 : 0) * Math.min(Math.abs(carSpeed) * 15, 1);
 
+  // ── Boundaries ────────────────────────────────────────────────
   const B = CITY - 5;
   if (pc.position.x >  B) { pc.position.x =  B; carSpeed *= -0.3; }
   if (pc.position.x < -B) { pc.position.x = -B; carSpeed *= -0.3; }
   if (pc.position.z >  B) { pc.position.z =  B; carSpeed *= -0.3; }
   if (pc.position.z < -B) { pc.position.z = -B; carSpeed *= -0.3; }
 
+  // ── Enemy traffic ─────────────────────────────────────────────
   enemyTimer -= dt;
   if (enemyTimer <= 0) { spawnEnemy(); enemyTimer = 60 + Math.random() * 60; }
   enemies.forEach(e => {
@@ -551,6 +719,7 @@ function animate(ts) {
     if (Math.abs(e.position.z) > CITY) e.userData.vz *= -1;
   });
 
+  // ── Collision ────────────────────────────────────────────────
   for (const e of enemies) {
     if (Math.abs(e.position.x - pc.position.x) < 1.8 &&
         Math.abs(e.position.z - pc.position.z) < 3.2) {
@@ -559,18 +728,17 @@ function animate(ts) {
   }
 
   score += Math.floor(Math.abs(carSpeed) * 4.5);
-  updateHUD(); drawMinimap();
-  renderer.render(scene, camera);
+  updateHUD(); drawMinimap(); renderFrame();
 }
 
-// ═══════════════════════════════════════
-// BOOT
-// ═══════════════════════════════════════
+// ════════════════════════════════════════════════════════════════
+// ⑪ BOOT — start render loop immediately, build city async, then show UI
+// ════════════════════════════════════════════════════════════════
 (async function boot() {
   animate(0);
   await buildCity();
-  document.getElementById('loader').style.display = 'none';
-  renderer.domElement.style.display = 'block';
+  document.getElementById('loader').style.display  = 'none';
+  renderer.domElement.style.display                = 'block';
   document.getElementById('overlay').style.display  = 'flex';
   document.getElementById('startPanel').style.display = 'flex';
   document.getElementById('goPanel').style.display    = 'none';
@@ -578,4 +746,3 @@ function animate(ts) {
 </script>
 </body>
 </html>
-§
