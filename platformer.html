@@ -1295,6 +1295,11 @@ class Player {
 
   update(dt,inp,platforms,particles,lvW){
     if(this.dead) return;
+    // pre-carry: move with last frame's platform BEFORE physics so player never detaches
+    if(this.onGround&&this.onPlat){
+      this.x+=this.onPlat.dX;
+      this.y+=this.onPlat.dY+(this.onPlat.type==='moving'?0.5:0);
+    }
     this.coyoteT=Math.max(0,this.coyoteT-dt);
     this.bufT   =Math.max(0,this.bufT-dt);
     this.invT   =Math.max(0,this.invT-dt);
@@ -1404,17 +1409,11 @@ class Player {
     if(wasGnd&&!this.onGround&&this.vy>=0) this.coyoteT=COYOTE_T;
     if(this.onGround){ this.jumpsLeft=MAX_JUMPS;this.coyoteT=0; }
 
-    // platform carry
-    if(this.onPlat){
-      this.x+=this.onPlat.dX;
-      // dY only for downward motion — upward is already handled by _resolveY snap
-      if(this.onPlat.dY>0) this.y+=this.onPlat.dY;
-      // conveyor push (point 47)
-      if(this.onPlat.type==='conveyor'){
-        const push=this.onPlat.conveyorDir*this.onPlat.conveyorSpd;
-        this.vx+=push*dt;
-        this.vx=Math.max(-SPRINT_SPD*1.3,Math.min(SPRINT_SPD*1.3,this.vx));
-      }
+    // conveyor push (x/y carry is handled by pre-carry above)
+    if(this.onPlat?.type==='conveyor'){
+      const push=this.onPlat.conveyorDir*this.onPlat.conveyorSpd;
+      this.vx+=push*dt;
+      this.vx=Math.max(-SPRINT_SPD*1.3,Math.min(SPRINT_SPD*1.3,this.vx));
     }
 
     // point 9: edge clamp
@@ -1493,6 +1492,10 @@ class Player {
     for(const p of platforms){
       if(p.crumbled||p.type==='passthrough') continue;
       if(!this._overlaps(p)) continue;
+      // standing on top (incl. the +0.5 carry into moving platforms) is NOT a wall
+      // hit — skip so the player isn't shoved sideways off a moving platform.
+      const footDip=this.bottom-p.y;
+      if(this.y<p.y&&footDip>0&&footDip<=6) continue;
       if(this.right-p.x<p.right-this.x){ this.x=p.x-this.w; this._wallR=true; }
       else { this.x=p.right; this._wallL=true; }
       this.vx=0;
@@ -2335,8 +2338,12 @@ class Game {
     this.enemies.forEach(e=>{ e.spd=Math.max(18,Math.round(e.spd*diff.enemyMult)); e.vx=e.spd; });
     this.windZones=(lv.windZones||[]).map(z=>new WindZone(z.x,z.y,z.w,z.h,z.dir,z.force));
     this.projectiles=[];
-    // Feature 63: checkpoints
-    this.checkpointObjs=lv.lava?[]:(lv.checkpoints||[]).map(c=>new CheckPoint(c.x,c.y));
+    // Feature 63: checkpoints — only keep flags that stand on a NON-moving block,
+    // so respawning never drops the player into the void (moving/vanishing blocks
+    // won't be where the flag was when you come back).
+    this.checkpointObjs=lv.lava?[]:(lv.checkpoints||[])
+      .map(c=>new CheckPoint(c.x,c.y))
+      .filter(cp=>this._cpHasStableGround(cp));
     this._cpX=lv.spX; this._cpY=lv.spY; this._cpFlash=0;
     this.player=new Player(lv.spX,lv.spY);
     this.particles=[];
@@ -2358,6 +2365,18 @@ class Game {
     document.getElementById('ctrl-hud').classList.add('visible');
     this._hud();
     sfx?.startBG();
+  }
+
+  // A checkpoint is valid only if a stable (non-moving, non-vanishing) block sits
+  // directly under its base — otherwise respawning there would drop the player.
+  _cpHasStableGround(cp){
+    const UNSTABLE=new Set(['moving','crumble','disappear','shrink']);
+    const baseY=cp.bottom; // flag pole base = ground level
+    for(const p of this.platforms){
+      if(UNSTABLE.has(p.type)) continue;
+      if(cp.cx>=p.x-6&&cp.cx<=p.right+6&&p.y>=baseY-12&&p.y<=baseY+100) return true;
+    }
+    return false;
   }
 
   // point 26: clear drawn platforms on death; respawn at last checkpoint (feature 63)

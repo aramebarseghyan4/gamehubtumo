@@ -133,6 +133,16 @@
       width: 100%;
     }
 
+    /* ── Card entrance & icon float ── */
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(28px) scale(0.94); }
+      to   { opacity: 1; transform: translateY(0)    scale(1); }
+    }
+    @keyframes iconFloat {
+      0%, 100% { transform: translateY(0); }
+      50%       { transform: translateY(-5px); }
+    }
+
     /* ── Game card ── */
     .game-card {
       display: flex;
@@ -151,8 +161,14 @@
       cursor: pointer;
       position: relative;
       overflow: hidden;
+      animation: cardIn 0.55s cubic-bezier(0.175,0.885,0.32,1.275) both;
       transition: transform 0.25s cubic-bezier(.22,1,.36,1), box-shadow 0.25s;
     }
+    /* staggered delays */
+    .game-card:nth-child(1) { animation-delay: 0.05s; }
+    .game-card:nth-child(2) { animation-delay: 0.15s; }
+    .game-card:nth-child(3) { animation-delay: 0.25s; }
+    .game-card:nth-child(4) { animation-delay: 0.35s; }
     /* inner shimmer sweep on hover */
     .game-card::after {
       content: '';
@@ -196,15 +212,32 @@
       box-shadow: 0 0 48px rgba(0,255,200,0.40), 0 18px 52px rgba(0,200,160,0.20), 0 0 0 1px rgba(0,220,200,0.32);
     }
 
+    /* Orange card — Neon Rush */
+    .game-card.orange {
+      border: 1.5px solid rgba(255,130,0,0.28);
+      box-shadow: 0 0 18px rgba(255,140,0,0.08), 0 8px 32px rgba(0,0,0,0.45);
+    }
+    .game-card.orange:hover {
+      transform: translateY(-10px) scale(1.03);
+      box-shadow: 0 0 48px rgba(255,140,0,0.45), 0 18px 52px rgba(220,80,0,0.22), 0 0 0 1px rgba(255,130,0,0.32);
+    }
+
     .card-icon {
       font-size: 3.4rem;
       line-height: 1;
-      transition: transform 0.3s cubic-bezier(.22,1,.36,1), filter 0.3s;
+      animation: iconFloat 3s ease-in-out infinite;
+      transition: filter 0.3s;
     }
+    /* stagger icon float per card */
+    .game-card:nth-child(1) .card-icon { animation-delay: 0s;    animation-duration: 3.2s; }
+    .game-card:nth-child(2) .card-icon { animation-delay: 0.8s;  animation-duration: 2.9s; }
+    .game-card:nth-child(3) .card-icon { animation-delay: 0.4s;  animation-duration: 3.5s; }
+    .game-card:nth-child(4) .card-icon { animation-delay: 1.2s;  animation-duration: 3.1s; }
     .game-card.gold   .card-icon { filter: drop-shadow(0 0 10px rgba(255,215,0,0.45)); }
     .game-card.cyan   .card-icon { filter: drop-shadow(0 0 10px rgba(0,255,200,0.45)); }
     .game-card.purple .card-icon { filter: drop-shadow(0 0 10px rgba(160,80,255,0.55)); }
-    .game-card:hover .card-icon { transform: scale(1.18); }
+    .game-card.orange .card-icon { filter: drop-shadow(0 0 10px rgba(255,140,0,0.55)); }
+    .game-card:hover .card-icon { animation-play-state: paused; transform: scale(1.18) translateY(0); }
 
     .card-title {
       font-family: 'Orbitron', sans-serif;
@@ -215,6 +248,7 @@
     .game-card.gold   .card-title { color: #ffd700; text-shadow: 0 0 14px rgba(255,215,0,0.4); }
     .game-card.cyan   .card-title { color: #00ffcc; text-shadow: 0 0 14px rgba(0,255,200,0.4); }
     .game-card.purple .card-title { color: #c080ff; text-shadow: 0 0 14px rgba(160,80,255,0.4); }
+    .game-card.orange .card-title { color: #ff9040; text-shadow: 0 0 14px rgba(255,140,0,0.4); }
 
     .card-genre {
       font-size: 0.62rem;
@@ -227,6 +261,7 @@
     .game-card.gold   .card-genre { color: rgba(255,215,0,0.6);   border: 1px solid rgba(255,215,0,0.22); }
     .game-card.cyan   .card-genre { color: rgba(0,255,200,0.6);   border: 1px solid rgba(0,255,200,0.22); }
     .game-card.purple .card-genre { color: rgba(160,80,255,0.65); border: 1px solid rgba(160,80,255,0.25); }
+    .game-card.orange .card-genre { color: rgba(255,140,0,0.70);  border: 1px solid rgba(255,130,0,0.25); }
 
     .card-desc {
       font-size: 0.82rem;
@@ -275,6 +310,15 @@
     .game-card.purple:hover .card-btn {
       transform: translateY(-2px);
       box-shadow: 0 0 30px rgba(160,80,255,0.60);
+    }
+    .game-card.orange .card-btn {
+      background: linear-gradient(135deg, #ff9040, #cc4400);
+      color: #1a0800;
+      box-shadow: 0 0 18px rgba(255,130,0,0.30);
+    }
+    .game-card.orange:hover .card-btn {
+      transform: translateY(-2px);
+      box-shadow: 0 0 30px rgba(255,130,0,0.60);
     }
 
     /* ── Footer ── */
@@ -875,7 +919,7 @@
         <button class="card-btn">▶ PLAY</button>
       </a>
 
-      <a href="platformer.html" class="game-card cyan">
+      <a href="platformer.html" class="game-card orange">
         <div class="card-icon">⚡</div>
         <div class="card-title">NEON RUSH</div>
         <div class="card-genre">PLATFORMER</div>
@@ -886,7 +930,7 @@
     </div>
 
     <div class="divider"></div>
-    <div class="hub-footer">3 games available</div>
+    <div class="hub-footer">4 games available</div>
   </div>
 
   <script>
