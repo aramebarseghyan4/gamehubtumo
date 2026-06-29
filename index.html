@@ -169,6 +169,7 @@
     .game-card:nth-child(2) { animation-delay: 0.15s; }
     .game-card:nth-child(3) { animation-delay: 0.25s; }
     .game-card:nth-child(4) { animation-delay: 0.35s; }
+    .game-card:nth-child(5) { animation-delay: 0.45s; }
     /* inner shimmer sweep on hover */
     .game-card::after {
       content: '';
@@ -222,6 +223,16 @@
       box-shadow: 0 0 48px rgba(255,140,0,0.45), 0 18px 52px rgba(220,80,0,0.22), 0 0 0 1px rgba(255,130,0,0.32);
     }
 
+    /* Blue card — City Drive */
+    .game-card.blue {
+      border: 1.5px solid rgba(60,160,255,0.28);
+      box-shadow: 0 0 18px rgba(60,160,255,0.08), 0 8px 32px rgba(0,0,0,0.45);
+    }
+    .game-card.blue:hover {
+      transform: translateY(-10px) scale(1.03);
+      box-shadow: 0 0 48px rgba(60,160,255,0.45), 0 18px 52px rgba(20,80,200,0.22), 0 0 0 1px rgba(60,160,255,0.32);
+    }
+
     .card-icon {
       font-size: 3.4rem;
       line-height: 1;
@@ -233,6 +244,7 @@
     .game-card:nth-child(2) .card-icon { animation-delay: 0.8s;  animation-duration: 2.9s; }
     .game-card:nth-child(3) .card-icon { animation-delay: 0.4s;  animation-duration: 3.5s; }
     .game-card:nth-child(4) .card-icon { animation-delay: 1.2s;  animation-duration: 3.1s; }
+    .game-card:nth-child(5) .card-icon { animation-delay: 0.6s;  animation-duration: 3.4s; }
     .game-card.gold   .card-icon { filter: drop-shadow(0 0 10px rgba(255,215,0,0.45)); }
     .game-card.cyan   .card-icon { filter: drop-shadow(0 0 10px rgba(0,255,200,0.45)); }
     .game-card.purple .card-icon { filter: drop-shadow(0 0 10px rgba(160,80,255,0.55)); }
@@ -319,6 +331,18 @@
     .game-card.orange:hover .card-btn {
       transform: translateY(-2px);
       box-shadow: 0 0 30px rgba(255,130,0,0.60);
+    }
+    .game-card.blue .card-title { color: #60c8ff; text-shadow: 0 0 14px rgba(60,160,255,0.4); }
+    .game-card.blue  .card-genre { color: rgba(60,180,255,0.65); border: 1px solid rgba(60,160,255,0.25); }
+    .game-card.blue  .card-icon  { filter: drop-shadow(0 0 10px rgba(60,160,255,0.55)); }
+    .game-card.blue  .card-btn {
+      background: linear-gradient(135deg, #40aaff, #1050c0);
+      color: #001830;
+      box-shadow: 0 0 18px rgba(60,160,255,0.30);
+    }
+    .game-card.blue:hover .card-btn {
+      transform: translateY(-2px);
+      box-shadow: 0 0 30px rgba(60,160,255,0.60);
     }
 
     /* ── Footer ── */
@@ -927,10 +951,18 @@
         <button class="card-btn">▶ PLAY</button>
       </a>
 
+      <a href="car_game_3d.html" class="game-card blue">
+        <div class="card-icon">🚗</div>
+        <div class="card-title">CITY DRIVE</div>
+        <div class="card-genre">3D RACING</div>
+        <div class="card-desc">Drive a real 3D car through a city. Dodge traffic and rack up your score!</div>
+        <button class="card-btn">▶ PLAY</button>
+      </a>
+
     </div>
 
     <div class="divider"></div>
-    <div class="hub-footer">4 games available</div>
+    <div class="hub-footer">5 games available</div>
   </div>
 
   <script>
