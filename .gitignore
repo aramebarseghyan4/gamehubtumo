@@ -1,0 +1,8 @@
+# Large 3D assets — too big for git
+*.glb
+*.gltf
+*.hdr
+*.exr
+
+# macOS
+.DS_Store
