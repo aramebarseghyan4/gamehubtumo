@@ -166,16 +166,17 @@
   <div id="bar-lbl">Initializing...</div>
 </div>
 
-<div id="crash-flash" style="position:fixed;inset:0;z-index:30;pointer-events:none;opacity:0;
-  background:radial-gradient(ellipse at center,rgba(255,0,0,0) 35%,rgba(180,0,0,0.85) 100%);
-  transition:opacity 0.08s;"></div>
-
 <div id="hud">
   Score: <span id="sc">0</span>
 </div>
 <div id="minimap"><canvas id="mmCanvas" width="140" height="140"></canvas></div>
 <div id="controls"></div>
 <div id="speedometer"><canvas id="spdCanvas" width="160" height="160"></canvas></div>
+<div id="ignition-btn" onclick="if(flipped)rightCar();else startEngine();"
+  style="position:fixed;left:50%;bottom:96px;transform:translateX(-50%);z-index:25;display:none;
+  padding:14px 28px;font:700 17px 'Segoe UI',sans-serif;letter-spacing:1px;border:none;border-radius:12px;
+  background:linear-gradient(135deg,#19c463,#0a8f43);color:#04331a;cursor:pointer;
+  box-shadow:0 6px 22px rgba(0,0,0,0.45);user-select:none;"></div>
 <div id="cam-switcher">
   <div class="cam-opt active" onclick="setCamera(0)"><div class="ico">📷</div>BEHIND</div>
   <div class="cam-opt"        onclick="setCamera(1)"><div class="ico">🦅</div>TOP</div>
@@ -210,7 +211,8 @@
     <div class="controls-hint">
       W / ↑ &nbsp;·&nbsp; GAS &nbsp;&nbsp;&nbsp; S / ↓ &nbsp;·&nbsp; BRAKE<br>
       A / ← &nbsp;·&nbsp; LEFT &nbsp;&nbsp;&nbsp; D / → &nbsp;·&nbsp; RIGHT<br>
-      C &nbsp;·&nbsp; CAMERA &nbsp;&nbsp;&nbsp; R &nbsp;·&nbsp; REPAIR
+      C &nbsp;·&nbsp; CAMERA &nbsp;&nbsp;&nbsp; SPACE &nbsp;·&nbsp; IGNITION<br>
+      R &nbsp;·&nbsp; REPAIR / FLIP UPRIGHT
     </div>
   </div>
 
@@ -870,78 +872,88 @@ function updateAtmosphere(dt) {
 }
 
 // ════════════════════════════════════════════════════════════════
-//  AUDIO — procedural engine hum + crash burst (WebAudio, no files)
+//  AUDIO — real recorded samples loaded from ./sounds/.
+//  Drop your own files in that folder (see sounds/README.txt). Any
+//  missing file simply plays nothing, so the game always runs.
 // ════════════════════════════════════════════════════════════════
-// Engine = two slightly-detuned sawtooths through a low-pass filter.
-// Detuning fattens the tone; the filter tames the harsh buzz of a raw saw.
-let audioCtx = null, engineGain = null, engineFilter = null, oscA = null, oscB = null, oscSub = null;
+const SOUND_URLS = {
+  engine: 'sounds/557214__lhermanns__enginewarmup_1-loop.wav', // looping engine — pitch follows speed
+  crash:  'sounds/847983__freekit__a-rattling-bus.wav',        // metal rattle (clipped short on impact)
+  start:  null,   // drop an engine-start file here later
+  stall:  null,   // drop an engine-stall file here later
+};
+let audioCtx = null, masterGain = null, engineGain = null, engineSrc = null;
+const _buffers = {};                  // decoded AudioBuffers, keyed like SOUND_URLS
+let _soundsRequested = false;
+
 function initAudio() {
   if (audioCtx) { if (audioCtx.state === 'suspended') audioCtx.resume(); return; }
   const AC = window.AudioContext || window.webkitAudioContext;
   if (!AC) return;
   audioCtx = new AC();
-
-  engineGain = audioCtx.createGain();
-  engineGain.gain.value = 0;
-
-  engineFilter = audioCtx.createBiquadFilter();
-  engineFilter.type = 'lowpass';
-  engineFilter.frequency.value = 350;
-  engineFilter.Q.value = 4;
-
-  oscA   = audioCtx.createOscillator(); oscA.type   = 'sawtooth'; oscA.frequency.value   = 45;
-  oscB   = audioCtx.createOscillator(); oscB.type   = 'sawtooth'; oscB.frequency.value   = 45; oscB.detune.value = -14;
-  oscSub = audioCtx.createOscillator(); oscSub.type = 'sine';     oscSub.frequency.value = 45;  // sub-octave body
-
-  oscA.connect(engineFilter);
-  oscB.connect(engineFilter);
-  oscSub.connect(engineFilter);
-  engineFilter.connect(engineGain).connect(audioCtx.destination);
-
-  oscA.start(); oscB.start(); oscSub.start();
+  masterGain = audioCtx.createGain(); masterGain.gain.value = 0.9;
+  masterGain.connect(audioCtx.destination);
+  engineGain = audioCtx.createGain(); engineGain.gain.value = 0;
+  engineGain.connect(masterGain);
+  loadAllSounds();
 }
+
+// fetch + decode each sample once; the engine loop auto-starts when ready
+function loadAllSounds() {
+  if (_soundsRequested || !audioCtx) return;
+  _soundsRequested = true;
+  Object.keys(SOUND_URLS).forEach(key => {
+    if (!SOUND_URLS[key]) return;     // empty slot → stays silent
+    fetch(SOUND_URLS[key])
+      .then(r => r.ok ? r.arrayBuffer() : Promise.reject('HTTP ' + r.status))
+      .then(data => audioCtx.decodeAudioData(data))
+      .then(buf => { _buffers[key] = buf; if (key === 'engine') startEngineLoop(); })
+      .catch(err => console.warn('Sound not loaded: ' + SOUND_URLS[key] + ' (' + err + ')'));
+  });
+}
+
+function startEngineLoop() {
+  if (!audioCtx || !_buffers.engine || engineSrc) return;
+  engineSrc = audioCtx.createBufferSource();
+  engineSrc.buffer = _buffers.engine;
+  engineSrc.loop = true;
+  engineSrc.connect(engineGain);
+  engineSrc.start();
+}
+
 function updateEngineSound() {
   if (!audioCtx || !engineGain) return;
   const now = audioCtx.currentTime;
   const spd = Math.abs(carSpeed);
-  const baseFreq = 45 + spd * 130;                 // "RPM" rises with speed
-  const cutoff   = 280 + spd * 2400;               // filter opens up under throttle
-  const target   = (gameRunning && !crashed) ? 0.04 + spd * 0.09 : 0.0;
-  // setTargetAtTime ramps smoothly → no clicks / zipper noise from per-frame jumps
-  oscA.frequency.setTargetAtTime(baseFreq,        now, 0.05);
-  oscB.frequency.setTargetAtTime(baseFreq,        now, 0.05);
-  oscSub.frequency.setTargetAtTime(baseFreq * 0.5, now, 0.05);
-  engineFilter.frequency.setTargetAtTime(cutoff,  now, 0.07);
-  engineGain.gain.setTargetAtTime(target,         now, 0.08);
+  const target = (gameRunning && engineOn) ? 0.30 + spd * 0.5 : 0.0;
+  engineGain.gain.setTargetAtTime(target, now, 0.08);
+  if (engineSrc) engineSrc.playbackRate.setTargetAtTime(0.7 + spd * 1.8, now, 0.1); // RPM
 }
-function playCrashSound(vol = 0.4) {
-  if (!audioCtx) return;
+
+// one-shot sample player (crash / start / stall). maxDur clips long samples to a
+// short burst with a tiny fade-out so they don't drone on or click.
+function playSample(key, vol = 1, maxDur = 0) {
+  if (!audioCtx || !_buffers[key]) return;
   const now = audioCtx.currentTime;
-  const dur = 0.5, sr = audioCtx.sampleRate;
-  const buf = audioCtx.createBuffer(1, Math.floor(sr * dur), sr);
-  const data = buf.getChannelData(0);
-  for (let i = 0; i < data.length; i++) {
-    const decay = Math.pow(1 - i / data.length, 2.5);
-    data[i] = (Math.random() * 2 - 1) * decay;
-  }
-  const src = audioCtx.createBufferSource(); src.buffer = buf;
-  // sweep a low-pass down so it reads as a metallic crunch → thud, not harsh static
-  const flt = audioCtx.createBiquadFilter(); flt.type = 'lowpass';
-  flt.frequency.setValueAtTime(2000, now);
-  flt.frequency.exponentialRampToValueAtTime(180, now + dur);
-  const g = audioCtx.createGain();
-  g.gain.setValueAtTime(0.0001, now);
-  g.gain.exponentialRampToValueAtTime(Math.max(0.02, vol), now + 0.01); // fast attack, no click
-  g.gain.exponentialRampToValueAtTime(0.0001, now + dur);
-  src.connect(flt).connect(g).connect(audioCtx.destination);
+  const src = audioCtx.createBufferSource(); src.buffer = _buffers[key];
+  const g = audioCtx.createGain(); g.gain.value = vol;
+  src.connect(g).connect(masterGain);
   src.start();
-  src.stop(now + dur);
+  if (maxDur > 0) {
+    g.gain.setValueAtTime(vol, now + maxDur - 0.08);
+    g.gain.linearRampToValueAtTime(0.0001, now + maxDur);
+    src.stop(now + maxDur);
+  }
 }
+function playCrashSound(vol = 0.7) { playSample('crash', Math.min(1, 0.4 + vol), 0.6); } // short clatter
+function playStartSound()          { playSample('start', 1); }
+function playStallSound()          { playSample('stall', 1); }
 
 // ════════════════════════════════════════════════════════════════
 //  CRASH — lose a life, knock the car back, shake the camera
 // ════════════════════════════════════════════════════════════════
-let _shake = 0; // current camera-shake magnitude, decays each frame
+let _shake = 0;      // current camera-shake magnitude, decays each frame
+let _bodyShake = 0;  // chassis shudder on impact, decays each frame
 
 // ── debris + smoke pool, spawned at the impact point ──
 const _debris = [];
@@ -1069,12 +1081,44 @@ function resetCarDamage() {
 // Called when the car rams something solid. sev = 0..1 impact severity.
 let _crashCooldown = 0;
 function crashImpact(worldPoint, sev) {
-  _shake = 0.5 + sev * 1.5;
+  _shake     = 0.6 + sev * 1.8;          // camera kick
+  _bodyShake = 0.06 + sev * 0.12;        // chassis shudder (decays in the orientation block)
   playCrashSound(0.15 + sev * 0.45);
   spawnCrashFX(worldPoint.x, worldPoint.y, worldPoint.z, sev);
-  const cf = document.getElementById('crash-flash');
-  if (cf) { cf.style.opacity = String(0.25 + sev * 0.6); setTimeout(() => { cf.style.opacity = '0'; }, 110); }
   applyDent(worldPoint, 2.2 + sev * 1.8, 0.35 + sev * 0.9);
+}
+
+// ── ENGINE / IGNITION & ROLLOVER ────────────────────────────────────
+// engineOn gates throttle + engine audio; a hard crash stalls it and the
+// player must re-ignite. A very hard crash also flips the car onto its roof
+// (free-spin roll, gravity-popped), which must be righted before restarting.
+function startEngine() {
+  if (!gameRunning || engineOn || flipped) return;
+  engineOn = true; playStartSound(); updateIgnitionUI();
+}
+function stopEngine() {
+  engineOn = false; updateIgnitionUI();
+}
+function triggerFlip(sev) {
+  if (flipped) return;
+  flipped = true; engineOn = false; _flipTimer = 0;
+  _rollVel = (Math.random() < 0.5 ? -1 : 1) * (0.20 + sev * 0.12);   // random barrel-roll dir
+  const pc = window._playerCar;
+  if (pc) { pc.position.y += 0.5; carVelY = 0.30 + sev * 0.20; }     // pop up so it tumbles
+  updateIgnitionUI();
+}
+function rightCar() {
+  if (!flipped) return;
+  flipped = false; _rollVel = 0; _roll = 0; _pitch = 0; _flipTimer = 0; carSpeed = 0;
+  updateIgnitionUI();                                                // engine stays off → prompt becomes "START ENGINE"
+}
+function updateIgnitionUI() {
+  const b = document.getElementById('ignition-btn');
+  if (!b) return;
+  if (!gameRunning)   { b.style.display = 'none'; return; }
+  if (flipped)        { b.textContent = '↻ FLIP UPRIGHT (R)';    b.style.display = 'block'; }
+  else if (!engineOn) { b.textContent = '🔑 START ENGINE (SPACE)'; b.style.display = 'block'; }
+  else                { b.style.display = 'none'; }
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -1084,7 +1128,8 @@ let carAngle = 0, carSpeed = 0;
 let carVelY = 0, _pitch = 0, _roll = 0, _landImpact = 0;  // vertical physics + terrain tilt
 const GRAVITY = 0.028;                                    // per-frame² fall accel
 let score = 0;
-let gameRunning = false, crashed = false, flashTimer = 0;
+let gameRunning = false;
+let engineOn = false, flipped = false, _rollVel = 0, _flipTimer = 0;  // ignition + rollover state
 
 const keys = {};
 // Only swallow the driving keys — leave F5 / F12 / Ctrl-shortcuts to the browser.
@@ -1234,8 +1279,9 @@ function stopBgAnimation() {
 
 function startGame() {
   initAudio();
-  score = 0; carSpeed = 0; crashed = false; flashTimer = 0; _crashCooldown = 0;
+  score = 0; carSpeed = 0; _crashCooldown = 0;
   carVelY = 0; _pitch = 0; _roll = 0; _landImpact = 0;
+  engineOn = false; flipped = false; _rollVel = 0; _flipTimer = 0; _bodyShake = 0;
   const pc0 = window._playerCar;
   _curSurf = sampleGround(pc0.position.x, pc0.position.z, window._carLift || 0);
   pc0.position.y = _curSurf + (window._carLift || 0);
@@ -1246,12 +1292,14 @@ function startGame() {
   document.getElementById('speedometer').style.display = 'block';
   document.getElementById('cam-switcher').style.display = 'flex';
   updateHUD(); gameRunning = true;
+  startEngine();                 // crank it up on entering the world
 }
 
 function restartGame() {
   initAudio();
-  score = 0; carSpeed = 0; carAngle = 0; crashed = false; flashTimer = 0; _crashCooldown = 0;
+  score = 0; carSpeed = 0; carAngle = 0; _crashCooldown = 0;
   carVelY = 0; _pitch = 0; _roll = 0; _landImpact = 0;
+  engineOn = false; flipped = false; _rollVel = 0; _flipTimer = 0; _bodyShake = 0;
   const pc = window._playerCar;
   _curSurf = sampleGround(0, 0, window._carLift || 0);
   pc.position.set(0, _curSurf + (window._carLift || 0), 0); pc.rotation.set(0, 0, 0); pc.visible = true;
@@ -1262,6 +1310,7 @@ function restartGame() {
   document.getElementById('speedometer').style.display = 'block';
   document.getElementById('cam-switcher').style.display = 'flex';
   updateHUD(); gameRunning = true;
+  startEngine();
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -1309,7 +1358,15 @@ function cycleCamera() { setCamera((camView + 1) % 5); }
 
 document.addEventListener('keydown', e => {
   if ((e.key === 'c' || e.key === 'C') && !e.ctrlKey) cycleCamera();
-  if ((e.key === 'r' || e.key === 'R') && !e.ctrlKey && gameRunning) resetCarDamage(); // repair
+  // R: right the car when flipped, otherwise repair dents
+  if ((e.key === 'r' || e.key === 'R') && !e.ctrlKey && gameRunning) {
+    if (flipped) rightCar(); else resetCarDamage();
+  }
+  // Space / I: ignition — right the car first if flipped, else start the engine
+  if ((e.key === ' ' || e.key === 'i' || e.key === 'I') && gameRunning) {
+    e.preventDefault();
+    if (flipped) rightCar(); else if (!engineOn) startEngine();
+  }
 });
 
 function animate(ts) {
@@ -1403,9 +1460,15 @@ function animate(ts) {
   const left  = keys['ArrowLeft']  || keys['a'] || keys['A'];
   const right = keys['ArrowRight'] || keys['d'] || keys['D'];
 
-  if (up)        carSpeed = Math.min(carSpeed + 0.003 * dt,  0.7);
-  else if (down) carSpeed = Math.max(carSpeed - 0.003 * dt, -0.15);
-  else           carSpeed *= Math.pow(0.97, dt);
+  // Throttle only has power when the engine is running and the car isn't flipped;
+  // otherwise it just coasts to a stop (same friction as the no-input case).
+  if (engineOn && !flipped) {
+    if (up)        carSpeed = Math.min(carSpeed + 0.003 * dt,  0.7);
+    else if (down) carSpeed = Math.max(carSpeed - 0.003 * dt, -0.15);
+    else           carSpeed *= Math.pow(0.97, dt);
+  } else {
+    carSpeed *= Math.pow(0.97, dt);
+  }
 
   const spd = Math.abs(carSpeed);
   // Steering works while rolling OR while the player feeds throttle/reverse,
@@ -1441,23 +1504,30 @@ function animate(ts) {
     if (!wallAt(fx, fz)) {
       pc.position.x = fx; pc.position.z = fz;        // clear road ahead
     } else {
-      // slide along whichever axis is still open
-      let slid = false;
-      if (!wallAt(pc.position.x + dx, pc.position.z)) { pc.position.x += dx; slid = true; }
-      if (!wallAt(pc.position.x, pc.position.z + dz)) { pc.position.z += dz; slid = true; }
-      if (!slid) {
-        // genuine head-on impact → dent the car, then STOP dead (no bounce).
-        // Reverse/steer still work (probe follows travel dir, steering needs no
-        // speed), so a clean stop never turns into a stuck car.
+      // Slide along whichever axis stays clear, then measure ACTUAL progress.
+      // Near-zero progress while moving = a true head-on impact (robust even when
+      // hitting a wall dead-perpendicular, where a naive per-axis slide would
+      // falsely register a zero-length "slide" and miss the crash).
+      const ox = pc.position.x, oz = pc.position.z;
+      if (!wallAt(pc.position.x + dx, pc.position.z)) pc.position.x += dx;
+      if (!wallAt(pc.position.x, pc.position.z + dz)) pc.position.z += dz;
+      const moved    = Math.hypot(pc.position.x - ox, pc.position.z - oz);
+      const intended = Math.hypot(dx, dz) || 1;
+      if (moved < intended * 0.4) {
+        // genuine head-on → crash FX, (hard) engine stall, (very hard) rollover,
+        // then a clean stop. Reverse/steer still work, so it never sticks.
         if (Math.abs(carSpeed) > 0.14 && _crashCooldown <= 0) {
           const sev = Math.min((Math.abs(carSpeed) - 0.14) / 0.56, 1);
           crashImpact(new THREE.Vector3(
             pc.position.x + fwdx * 5, pc.position.y + 1.3, pc.position.z + fwdz * 5
           ), sev);
           _crashCooldown = 22;
+          if (sev >= 0.45) { stopEngine(); playStallSound(); }  // hard hit → engine stalls
+          if (sev >= 0.75) triggerFlip(sev);                    // very hard → rolls over
         }
         carSpeed = 0;                                // stop clean — drive away freely
       }
+      // else: genuinely slid along the wall — keep momentum, no crash
     }
   }
 
@@ -1512,14 +1582,37 @@ function animate(ts) {
   // ── ORIENTATION — yaw from steering; pitch/roll eased toward the terrain
   //    slowly, so slopes, falls & landings are smooth, never a hard flip ──
   const airborne = pc.position.y > restY + 0.4;
-  _pitch += ((airborne ? 0 : pitchTarget) - _pitch) * Math.min(0.08 * dt, 1);
-  _roll  += ((airborne ? 0 : rollTarget ) - _roll ) * Math.min(0.08 * dt, 1);
+  if (!flipped) {
+    _pitch += ((airborne ? 0 : pitchTarget) - _pitch) * Math.min(0.08 * dt, 1);
+    _roll  += ((airborne ? 0 : rollTarget ) - _roll ) * Math.min(0.08 * dt, 1);
+  } else {
+    // Rolled over — the roll spins under its own damped momentum (terrain easing
+    // is skipped so the two don't fight). It settles on its roof past the tipping
+    // point, or self-rights if the impulse was weak. A hard timeout guarantees the
+    // animation always terminates so a flip can never hang the car.
+    _flipTimer += dt;
+    _roll += _rollVel * dt;
+    _rollVel *= Math.pow(0.96, dt);
+    _rollVel = Math.max(-0.5, Math.min(0.5, _rollVel));
+    const onGround = pc.position.y <= restY + 0.12;
+    if ((onGround && Math.abs(_rollVel) < 0.01) || _flipTimer > 180) {
+      _roll = Math.abs(_roll) > Math.PI * 0.5 ? Math.sign(_roll || 1) * Math.PI : 0;
+      if (Math.abs(_roll) < 0.01) { flipped = false; _rollVel = 0; updateIgnitionUI(); }
+    }
+  }
   _landImpact *= Math.pow(0.85, dt);
+  // sharp post-impact chassis shudder — additive & fast-decaying so it never lingers
+  let _sP = 0, _sR = 0;
+  if (_bodyShake > 0.0005) {
+    _sP = (Math.random() - 0.5) * _bodyShake;
+    _sR = (Math.random() - 0.5) * _bodyShake;
+    _bodyShake *= Math.pow(0.80, dt);
+  } else _bodyShake = 0;
   const steerLean = (left ? 0.05 : right ? -0.05 : 0) * Math.min(Math.abs(carSpeed) * 15, 1);
   pc.rotation.order = 'YXZ';                        // yaw → pitch → roll
   pc.rotation.y = carAngle + Math.PI;               // +PI so the nose leads travel
-  pc.rotation.x = _pitch + _landImpact;
-  pc.rotation.z = _roll + steerLean;
+  pc.rotation.x = _pitch + _landImpact + _sP;
+  pc.rotation.z = _roll + steerLean + _sR;
 
   // ── Enemy traffic ─────────────────────────────────────────────
   score += Math.floor(Math.abs(carSpeed) * 4.5);
