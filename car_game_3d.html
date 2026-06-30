@@ -166,6 +166,10 @@
   <div id="bar-lbl">Initializing...</div>
 </div>
 
+<div id="crash-flash" style="position:fixed;inset:0;z-index:30;pointer-events:none;opacity:0;
+  background:radial-gradient(ellipse at center,rgba(255,0,0,0) 35%,rgba(180,0,0,0.85) 100%);
+  transition:opacity 0.08s;"></div>
+
 <div id="hud">
   Score: <span id="sc">0</span>
 </div>
@@ -177,6 +181,7 @@
   <div class="cam-opt"        onclick="setCamera(1)"><div class="ico">🦅</div>TOP</div>
   <div class="cam-opt"        onclick="setCamera(2)"><div class="ico">👁</div>FIRST</div>
   <div class="cam-opt"        onclick="setCamera(3)"><div class="ico">◀</div>SIDE</div>
+  <div class="cam-opt"        onclick="setCamera(4)"><div class="ico">🏎</div>HOOD</div>
 </div>
 
 <!-- full-screen overlay bg -->
@@ -205,7 +210,7 @@
     <div class="controls-hint">
       W / ↑ &nbsp;·&nbsp; GAS &nbsp;&nbsp;&nbsp; S / ↓ &nbsp;·&nbsp; BRAKE<br>
       A / ← &nbsp;·&nbsp; LEFT &nbsp;&nbsp;&nbsp; D / → &nbsp;·&nbsp; RIGHT<br>
-      C &nbsp;·&nbsp; SWITCH CAMERA
+      C &nbsp;·&nbsp; CAMERA &nbsp;&nbsp;&nbsp; R &nbsp;·&nbsp; REPAIR
     </div>
   </div>
 
@@ -300,8 +305,9 @@ function toggleSettings() {
 }
 
 function applyQualityInGame() {
-  // reload to re-apply HDR
+  // HDR environment is baked at load time, so re-apply by reloading.
   document.getElementById('settings-panel').style.display = 'none';
+  location.reload();
 }
 
 // PBR texture sets for road, sidewalk, and building walls.
@@ -491,7 +497,7 @@ function defer(fn) { return new Promise(r => setTimeout(() => { fn(); r(); }, 0)
 
 // ════════════════════════════════════════════════════════════════
 // ⑧ ASYNC CITY BUILDER
-// ════════════════════════════════════════════════════════════════sc
+// ════════════════════════════════════════════════════════════════
 async function buildCity() {
 
   // ── LIGHTING + SKY ──────────────────────────────────────────────
@@ -641,6 +647,7 @@ async function buildCity() {
         });
         scene.add(model);
         window._playerCar = model;
+        collectCarMeshes();
         setProgress(98, 'Almost ready...');
         resolve();
       },
@@ -653,6 +660,7 @@ async function buildCity() {
         const car = buildCar(0x1a3a6a);
         scene.add(car);
         window._playerCar = car;
+        collectCarMeshes();
         resolve();
       }
     );
@@ -684,6 +692,12 @@ async function buildCity() {
           world.position.x -= c.x;
           world.position.z -= c.z;
           world.position.y -= box2.min.y;  // sit map bottom exactly on y=0
+          // Real city footprint → drive boundary (small inward margin so the
+          // car can't poke past the edge of the model).
+          window._mapBounds = {
+            x: (box2.max.x - box2.min.x) / 2 - 4,
+            z: (box2.max.z - box2.min.z) / 2 - 4,
+          };
           world.traverse(ch => {
             if (!ch.isMesh) return;
             ch.castShadow = true; ch.receiveShadow = true;
@@ -719,6 +733,7 @@ async function buildCity() {
     scene.add(ground);
     window._worldMap = null;   // no mesh to raycast against → flat driving
     window._carLift  = 0;      // car sits at y = 0
+    window._mapBounds = { x: 595, z: 595 }; // flat ground is 1200 wide → ±600
   }
 
   buildAtmosphere(window._playerCar);
@@ -855,14 +870,230 @@ function updateAtmosphere(dt) {
 }
 
 // ════════════════════════════════════════════════════════════════
-// ⑨ GAME STATE  (logic identical to original — do not modify)
+//  AUDIO — procedural engine hum + crash burst (WebAudio, no files)
+// ════════════════════════════════════════════════════════════════
+// Engine = two slightly-detuned sawtooths through a low-pass filter.
+// Detuning fattens the tone; the filter tames the harsh buzz of a raw saw.
+let audioCtx = null, engineGain = null, engineFilter = null, oscA = null, oscB = null, oscSub = null;
+function initAudio() {
+  if (audioCtx) { if (audioCtx.state === 'suspended') audioCtx.resume(); return; }
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return;
+  audioCtx = new AC();
+
+  engineGain = audioCtx.createGain();
+  engineGain.gain.value = 0;
+
+  engineFilter = audioCtx.createBiquadFilter();
+  engineFilter.type = 'lowpass';
+  engineFilter.frequency.value = 350;
+  engineFilter.Q.value = 4;
+
+  oscA   = audioCtx.createOscillator(); oscA.type   = 'sawtooth'; oscA.frequency.value   = 45;
+  oscB   = audioCtx.createOscillator(); oscB.type   = 'sawtooth'; oscB.frequency.value   = 45; oscB.detune.value = -14;
+  oscSub = audioCtx.createOscillator(); oscSub.type = 'sine';     oscSub.frequency.value = 45;  // sub-octave body
+
+  oscA.connect(engineFilter);
+  oscB.connect(engineFilter);
+  oscSub.connect(engineFilter);
+  engineFilter.connect(engineGain).connect(audioCtx.destination);
+
+  oscA.start(); oscB.start(); oscSub.start();
+}
+function updateEngineSound() {
+  if (!audioCtx || !engineGain) return;
+  const now = audioCtx.currentTime;
+  const spd = Math.abs(carSpeed);
+  const baseFreq = 45 + spd * 130;                 // "RPM" rises with speed
+  const cutoff   = 280 + spd * 2400;               // filter opens up under throttle
+  const target   = (gameRunning && !crashed) ? 0.04 + spd * 0.09 : 0.0;
+  // setTargetAtTime ramps smoothly → no clicks / zipper noise from per-frame jumps
+  oscA.frequency.setTargetAtTime(baseFreq,        now, 0.05);
+  oscB.frequency.setTargetAtTime(baseFreq,        now, 0.05);
+  oscSub.frequency.setTargetAtTime(baseFreq * 0.5, now, 0.05);
+  engineFilter.frequency.setTargetAtTime(cutoff,  now, 0.07);
+  engineGain.gain.setTargetAtTime(target,         now, 0.08);
+}
+function playCrashSound(vol = 0.4) {
+  if (!audioCtx) return;
+  const now = audioCtx.currentTime;
+  const dur = 0.5, sr = audioCtx.sampleRate;
+  const buf = audioCtx.createBuffer(1, Math.floor(sr * dur), sr);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < data.length; i++) {
+    const decay = Math.pow(1 - i / data.length, 2.5);
+    data[i] = (Math.random() * 2 - 1) * decay;
+  }
+  const src = audioCtx.createBufferSource(); src.buffer = buf;
+  // sweep a low-pass down so it reads as a metallic crunch → thud, not harsh static
+  const flt = audioCtx.createBiquadFilter(); flt.type = 'lowpass';
+  flt.frequency.setValueAtTime(2000, now);
+  flt.frequency.exponentialRampToValueAtTime(180, now + dur);
+  const g = audioCtx.createGain();
+  g.gain.setValueAtTime(0.0001, now);
+  g.gain.exponentialRampToValueAtTime(Math.max(0.02, vol), now + 0.01); // fast attack, no click
+  g.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+  src.connect(flt).connect(g).connect(audioCtx.destination);
+  src.start();
+  src.stop(now + dur);
+}
+
+// ════════════════════════════════════════════════════════════════
+//  CRASH — lose a life, knock the car back, shake the camera
+// ════════════════════════════════════════════════════════════════
+let _shake = 0; // current camera-shake magnitude, decays each frame
+
+// ── debris + smoke pool, spawned at the impact point ──
+const _debris = [];
+const _debrisGeo = new THREE.BoxGeometry(0.35, 0.25, 0.55);
+const _debrisMat = new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.6, roughness: 0.5 });
+function spawnCrashFX(x, y, z, sev = 1) {
+  // metal chunks flung outward with gravity + spin (more on harder hits)
+  const chunks = Math.round(5 + sev * 13);
+  for (let i = 0; i < chunks; i++) {
+    const m = new THREE.Mesh(_debrisGeo, _debrisMat);
+    m.position.set(x, y + 0.6, z);
+    m.castShadow = true;
+    scene.add(m);
+    const a = Math.random() * Math.PI * 2, sp = (0.25 + Math.random() * 0.45) * (0.5 + sev);
+    _debris.push({
+      obj: m, kind: 'chunk',
+      vx: Math.cos(a) * sp, vy: 0.25 + Math.random() * 0.35, vz: Math.sin(a) * sp,
+      rx: (Math.random() - 0.5) * 0.5, ry: (Math.random() - 0.5) * 0.5, rz: (Math.random() - 0.5) * 0.5,
+      life: 1,
+    });
+  }
+  // smoke puffs rising from the wreck
+  const puffs = Math.round(3 + sev * 6);
+  for (let i = 0; i < puffs; i++) {
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: _dustTex, color: 0x333333, transparent: true, opacity: 0.7,
+      blending: THREE.NormalBlending, depthWrite: false,
+    }));
+    sp.position.set(x + (Math.random() - 0.5) * 2, y + 0.5 + Math.random(), z + (Math.random() - 0.5) * 2);
+    sp.scale.set(2, 2, 1);
+    scene.add(sp);
+    _debris.push({
+      obj: sp, kind: 'smoke',
+      vx: (Math.random() - 0.5) * 0.05, vy: 0.06 + Math.random() * 0.05, vz: (Math.random() - 0.5) * 0.05,
+      life: 1,
+    });
+  }
+}
+function updateCrashFX(dt) {
+  for (let i = _debris.length - 1; i >= 0; i--) {
+    const d = _debris[i];
+    const o = d.obj;
+    if (d.kind === 'chunk') {
+      d.vy -= 0.025 * dt;                 // gravity
+      o.position.x += d.vx * dt;
+      o.position.y += d.vy * dt;
+      o.position.z += d.vz * dt;
+      if (o.position.y < 0.15) { o.position.y = 0.15; d.vy *= -0.4; d.vx *= 0.6; d.vz *= 0.6; }
+      o.rotation.x += d.rx * dt; o.rotation.y += d.ry * dt; o.rotation.z += d.rz * dt;
+      d.life -= dt * 0.012;
+    } else {
+      o.position.x += d.vx * dt;
+      o.position.y += d.vy * dt;
+      o.position.z += d.vz * dt;
+      const s = 2 + (1 - d.life) * 5;
+      o.scale.set(s, s, 1);
+      o.material.opacity = Math.max(0, d.life) * 0.7;
+      d.life -= dt * 0.02;
+    }
+    if (d.life <= 0) { scene.remove(o); _debris.splice(i, 1); }
+  }
+}
+
+// ── PERSISTENT BODY DAMAGE — real mesh denting ──────────────────────
+// On load we grab every mesh of the car, clone its geometry (so dents are
+// per-instance, not shared) and stash a pristine copy of the vertices so
+// "repair" can restore them. Each impact pushes nearby vertices inward
+// along their normals → a dent that stays until repaired.
+const _dentV = new THREE.Vector3(), _dentS = new THREE.Vector3();
+function collectCarMeshes() {
+  const pc = window._playerCar;
+  if (!pc) return;
+  const list = [];
+  pc.traverse(ch => {
+    if (ch.isMesh && ch.geometry && ch.geometry.attributes && ch.geometry.attributes.position) {
+      ch.geometry = ch.geometry.clone();              // unshare so dents are local
+      if (!ch.geometry.attributes.normal) ch.geometry.computeVertexNormals();
+      ch.userData._origPos = ch.geometry.attributes.position.array.slice();
+      list.push(ch);
+    }
+  });
+  window._carMeshes = list;
+}
+
+function applyDent(worldPoint, worldRadius, worldDepth) {
+  const meshes = window._carMeshes;
+  if (!meshes) return;
+  for (const mesh of meshes) {
+    mesh.updateWorldMatrix(true, false);
+    const g = mesh.geometry;
+    const pos = g.attributes.position, nrm = g.attributes.normal;
+    const local = mesh.worldToLocal(_dentV.copy(worldPoint));
+    const scale = mesh.getWorldScale(_dentS).x || 1;   // local↔world unit conversion
+    const r = worldRadius / scale, depth = worldDepth / scale;
+    let changed = false;
+    for (let i = 0; i < pos.count; i++) {
+      const dx = pos.getX(i) - local.x, dy = pos.getY(i) - local.y, dz = pos.getZ(i) - local.z;
+      const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+      if (dist >= r) continue;
+      const fall = 1 - dist / r;                        // 1 at centre → 0 at edge
+      const push = depth * fall * fall;                 // crumple inward along normal
+      const nx = nrm ? nrm.getX(i) : 0, ny = nrm ? nrm.getY(i) : 0, nz = nrm ? nrm.getZ(i) : 0;
+      const j = push * 0.35;                            // jagged crumple
+      pos.setXYZ(i,
+        pos.getX(i) - nx*push + (Math.random()-0.5)*j,
+        pos.getY(i) - ny*push + (Math.random()-0.5)*j,
+        pos.getZ(i) - nz*push + (Math.random()-0.5)*j);
+      changed = true;
+    }
+    if (changed) { pos.needsUpdate = true; g.computeVertexNormals(); }
+  }
+}
+
+function resetCarDamage() {
+  if (!window._carMeshes) return;
+  for (const mesh of window._carMeshes) {
+    const orig = mesh.userData._origPos;
+    if (!orig) continue;
+    mesh.geometry.attributes.position.array.set(orig);
+    mesh.geometry.attributes.position.needsUpdate = true;
+    mesh.geometry.computeVertexNormals();
+  }
+}
+
+// Called when the car rams something solid. sev = 0..1 impact severity.
+let _crashCooldown = 0;
+function crashImpact(worldPoint, sev) {
+  _shake = 0.5 + sev * 1.5;
+  playCrashSound(0.15 + sev * 0.45);
+  spawnCrashFX(worldPoint.x, worldPoint.y, worldPoint.z, sev);
+  const cf = document.getElementById('crash-flash');
+  if (cf) { cf.style.opacity = String(0.25 + sev * 0.6); setTimeout(() => { cf.style.opacity = '0'; }, 110); }
+  applyDent(worldPoint, 2.2 + sev * 1.8, 0.35 + sev * 0.9);
+}
+
+// ════════════════════════════════════════════════════════════════
+// ⑨ GAME STATE
 // ════════════════════════════════════════════════════════════════
 let carAngle = 0, carSpeed = 0;
-let lives = 3, score = 0;
+let carVelY = 0, _pitch = 0, _roll = 0, _landImpact = 0;  // vertical physics + terrain tilt
+const GRAVITY = 0.028;                                    // per-frame² fall accel
+let score = 0;
 let gameRunning = false, crashed = false, flashTimer = 0;
 
 const keys = {};
-document.addEventListener('keydown', e => { keys[e.key] = true;  e.preventDefault(); });
+// Only swallow the driving keys — leave F5 / F12 / Ctrl-shortcuts to the browser.
+const GAME_KEYS = new Set(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',
+  'w','W','a','A','s','S','d','D',' ']);
+document.addEventListener('keydown', e => {
+  keys[e.key] = true;
+  if (GAME_KEYS.has(e.key)) e.preventDefault();
+});
 document.addEventListener('keyup',   e => { keys[e.key] = false; });
 
 const mmCtx = document.getElementById('mmCanvas').getContext('2d');
@@ -1002,19 +1233,29 @@ function stopBgAnimation() {
 }
 
 function startGame() {
+  initAudio();
+  score = 0; carSpeed = 0; crashed = false; flashTimer = 0; _crashCooldown = 0;
+  carVelY = 0; _pitch = 0; _roll = 0; _landImpact = 0;
+  const pc0 = window._playerCar;
+  _curSurf = sampleGround(pc0.position.x, pc0.position.z, window._carLift || 0);
+  pc0.position.y = _curSurf + (window._carLift || 0);
+  resetCarDamage();
   hideMenuUI();
   document.getElementById('hud').style.display         = 'flex';
   document.getElementById('minimap').style.display     = 'block';
   document.getElementById('speedometer').style.display = 'block';
   document.getElementById('cam-switcher').style.display = 'flex';
-  gameRunning = true;
+  updateHUD(); gameRunning = true;
 }
 
 function restartGame() {
-  score = 0; lives = 3; carSpeed = 0; carAngle = 0; crashed = false; flashTimer = 0;
+  initAudio();
+  score = 0; carSpeed = 0; carAngle = 0; crashed = false; flashTimer = 0; _crashCooldown = 0;
+  carVelY = 0; _pitch = 0; _roll = 0; _landImpact = 0;
   const pc = window._playerCar;
-  pc.position.set(0, window._carLift || 0, 0); pc.rotation.set(0, 0, 0); pc.visible = true;
-  _curSurf = window._carLift || 0;
+  _curSurf = sampleGround(0, 0, window._carLift || 0);
+  pc.position.set(0, _curSurf + (window._carLift || 0), 0); pc.rotation.set(0, 0, 0); pc.visible = true;
+  resetCarDamage();
   hideMenuUI();
   document.getElementById('hud').style.display         = 'flex';
   document.getElementById('minimap').style.display     = 'block';
@@ -1039,8 +1280,19 @@ const fSmooth = (rate, dt) => 1 - Math.pow(1 - rate, dt);
 // onto the tall structures (realistic).
 const _groundRay = new THREE.Raycaster();
 const _downV = new THREE.Vector3(0, -1, 0);
+const _probeOrigin = new THREE.Vector3();   // reused ray origin (no per-frame allocation)
 const MAX_STEP = 0.4;        // max height the car can climb — keeps it off parked cars and building ledges
 let _curSurf = 0;            // height of the ground the car is currently resting on
+
+// Sample the ground height under a point. Used to seed _curSurf at spawn so the
+// car isn't briefly walled-in by its own surface before the lerp catches up.
+function sampleGround(x, z, fallback) {
+  if (!window._worldMap) return fallback || 0;
+  _groundRay.far = Infinity;
+  _groundRay.set(_probeOrigin.set(x, 1500, z), _downV);
+  const hit = _groundRay.intersectObject(window._worldMap, true);
+  return hit.length ? hit[0].point.y : (fallback || 0);
+}
 
 // ── Camera views ──────────────────────────────────────────────
 // 0 = behind (3rd person)  1 = top-down (bird's eye)  2 = first person
@@ -1053,10 +1305,11 @@ function setCamera(idx) {
   );
 }
 
-function cycleCamera() { setCamera((camView + 1) % 4); }
+function cycleCamera() { setCamera((camView + 1) % 5); }
 
 document.addEventListener('keydown', e => {
   if ((e.key === 'c' || e.key === 'C') && !e.ctrlKey) cycleCamera();
+  if ((e.key === 'r' || e.key === 'R') && !e.ctrlKey && gameRunning) resetCarDamage(); // repair
 });
 
 function animate(ts) {
@@ -1092,18 +1345,35 @@ function animate(ts) {
     tLX = pc.position.x - Math.sin(carAngle) * 50;
     tLY = pc.position.y + 1.7;
     tLZ = pc.position.z - Math.cos(carAngle) * 50;
-  } else {
+  } else if (camView === 3) {
     // ── Side ──
     tCX = pc.position.x + Math.cos(carAngle) * 12;
     tCZ = pc.position.z - Math.sin(carAngle) * 12;
     tCY = pc.position.y + 4; fCY = f;
     tLX = pc.position.x; tLY = pc.position.y + 1.0; tLZ = pc.position.z;
+  } else {
+    // ── Front cam — sits ahead of the nose looking BACK at the car, so
+    //    the hood, front bumper & headlights fill the frame ──
+    tCX = pc.position.x - Math.sin(carAngle) * 11;
+    tCZ = pc.position.z - Math.cos(carAngle) * 11;
+    tCY = pc.position.y + 3.6; fCY = f;
+    tLX = pc.position.x;                 // look straight at the car
+    tLY = pc.position.y + 1.4;
+    tLZ = pc.position.z;
   }
 
   camX += (tCX - camX) * f;
   camZ += (tCZ - camZ) * f;
   camY += (tCY - camY) * fCY;
   camera.position.set(camX, camY, camZ);
+
+  // camera shake on impact — decays fast
+  if (_shake > 0.001) {
+    camera.position.x += (Math.random() - 0.5) * _shake * 2.2;
+    camera.position.y += (Math.random() - 0.5) * _shake * 2.2;
+    camera.position.z += (Math.random() - 0.5) * _shake * 2.2;
+    _shake *= Math.pow(0.85, dt);
+  } else _shake = 0;
 
   // smoothed look target — filters any per-frame jitter out of the aim too
   if (!_lookInit) { _lookX = tLX; _lookY = tLY; _lookZ = tLZ; _lookInit = true; }
@@ -1120,24 +1390,12 @@ function animate(ts) {
   }
 
   updateAtmosphere(dt);
+  updateEngineSound();
+  updateCrashFX(dt);
 
   if (!gameRunning) { renderFrame(); return; }
 
-  // ── Crash flash ────────────────────────────────────────────────
-  if (crashed) {
-    flashTimer -= dt;
-    pc.visible = Math.floor(flashTimer / 7) % 2 === 0;
-    if (flashTimer <= 0) {
-      if (lives <= 0) {
-        gameRunning = false;
-        document.getElementById('goScore').textContent = 'Final Score: ' + score;
-        ['hud', 'minimap', 'controls', 'speedometer', 'cam-switcher'].forEach(id => document.getElementById(id).style.display = 'none');
-        showMenuUI(false);
-        pc.visible = true;
-      } else { crashed = false; pc.visible = true; carSpeed = 0; }
-    }
-    renderFrame(); updateHUD(); drawMinimap(); return;
-  }
+  if (_crashCooldown > 0) _crashCooldown -= dt;
 
   // ── Input ──────────────────────────────────────────────────────
   const up    = keys['ArrowUp']    || keys['w'] || keys['W'];
@@ -1150,69 +1408,118 @@ function animate(ts) {
   else           carSpeed *= Math.pow(0.97, dt);
 
   const spd = Math.abs(carSpeed);
-  const turnRate = spd > 0.02 ? 0.018 * Math.min(spd / 0.25, 1.0) * dt * (carSpeed >= 0 ? 1 : -1) : 0;
-  if (left)  carAngle += turnRate;
-  if (right) carAngle -= turnRate;
+  // Steering works while rolling OR while the player feeds throttle/reverse,
+  // so you can always reorient — even when nudged up against a wall.
+  if (spd > 0.004 || up || down) {
+    const authority = Math.max(Math.min(spd / 0.22, 1.0), (up || down) ? 0.4 : 0);
+    const turnRate  = 0.020 * authority * dt * (carSpeed >= 0 ? 1 : -1);
+    if (left)  carAngle += turnRate;
+    if (right) carAngle -= turnRate;
+  }
 
-  // ── Proposed move, then collision-test it against the city ───────
-  const dx = -Math.sin(carAngle) * carSpeed * dt;
-  const dz = -Math.cos(carAngle) * carSpeed * dt;
-  const nx = pc.position.x + dx;
-  const nz = pc.position.z + dz;
+  // ── Movement with wall-SLIDING collision (never wedges) ──────────
+  // Probe the car's leading edge in the direction it's ACTUALLY travelling
+  // (ahead when driving, behind when reversing → reverse is never blocked by
+  // a wall in front). If the full move hits a wall we retry each axis alone
+  // so the car slides along it; a true head-on hit dents the car and bounces
+  // it back a touch, so it can never glue itself to anything.
+  const fwdx = -Math.sin(carAngle), fwdz = -Math.cos(carAngle);
+  const dx = fwdx * carSpeed * dt;
+  const dz = fwdz * carSpeed * dt;
+  const lead = (carSpeed >= 0 ? 1 : -1) * 4.5;     // leading-edge offset
 
-  // ── STEP / WALL detection (probe AHEAD only — decides if the move is blocked) ──
-  let blocked = false;
-  if (window._worldMap && Math.abs(carSpeed) > 0.002) {
-    // height just ahead — too tall a step = curb / wall we can't climb
+  const wallAt = (x, z) => {
+    if (!window._worldMap) return false;
     _groundRay.far = Infinity;
-    _groundRay.set(new THREE.Vector3(nx, 1500, nz), _downV);
-    const aheadHit = _groundRay.intersectObject(window._worldMap, true);
-    if (aheadHit.length && aheadHit[0].point.y - _curSurf > MAX_STEP) blocked = true;
+    _groundRay.set(_probeOrigin.set(x + fwdx * lead, 1500, z + fwdz * lead), _downV);
+    const hit = _groundRay.intersectObject(window._worldMap, true);
+    return hit.length > 0 && (hit[0].point.y - _curSurf) > MAX_STEP;
+  };
 
-    // horizontal ray catches vertical walls / sides of parked cars
-    if (!blocked) {
-      const dir = new THREE.Vector3(-Math.sin(carAngle), 0, -Math.cos(carAngle)).normalize();
-      _groundRay.set(new THREE.Vector3(pc.position.x, pc.position.y + 0.8, pc.position.z), dir);
-      _groundRay.far = 2.2;
-      if (_groundRay.intersectObject(window._worldMap, true).length > 0) blocked = true;
-      _groundRay.far = Infinity;
+  if (carSpeed !== 0) {
+    const fx = pc.position.x + dx, fz = pc.position.z + dz;
+    if (!wallAt(fx, fz)) {
+      pc.position.x = fx; pc.position.z = fz;        // clear road ahead
+    } else {
+      // slide along whichever axis is still open
+      let slid = false;
+      if (!wallAt(pc.position.x + dx, pc.position.z)) { pc.position.x += dx; slid = true; }
+      if (!wallAt(pc.position.x, pc.position.z + dz)) { pc.position.z += dz; slid = true; }
+      if (!slid) {
+        // genuine head-on impact → dent the car, then STOP dead (no bounce).
+        // Reverse/steer still work (probe follows travel dir, steering needs no
+        // speed), so a clean stop never turns into a stuck car.
+        if (Math.abs(carSpeed) > 0.14 && _crashCooldown <= 0) {
+          const sev = Math.min((Math.abs(carSpeed) - 0.14) / 0.56, 1);
+          crashImpact(new THREE.Vector3(
+            pc.position.x + fwdx * 5, pc.position.y + 1.3, pc.position.z + fwdz * 5
+          ), sev);
+          _crashCooldown = 22;
+        }
+        carSpeed = 0;                                // stop clean — drive away freely
+      }
     }
   }
 
-  if (blocked) {
-    carSpeed = 0;                                  // stop dead — no bounce = no jitter
-  } else {
-    pc.position.x = nx; pc.position.z = nz;
-  }
+  // ── Boundaries — clamp to the actual city footprint so you can't
+  //    drive off the map onto the empty ground beyond it ────────────
+  const bx = window._mapBounds ? window._mapBounds.x : (CITY - 5);
+  const bz = window._mapBounds ? window._mapBounds.z : (CITY - 5);
+  if (pc.position.x >  bx) { pc.position.x =  bx; carSpeed = 0; }
+  if (pc.position.x < -bx) { pc.position.x = -bx; carSpeed = 0; }
+  if (pc.position.z >  bz) { pc.position.z =  bz; carSpeed = 0; }
+  if (pc.position.z < -bz) { pc.position.z = -bz; carSpeed = 0; }
 
-  // ── RESTING HEIGHT (probe straight DOWN at the car centre, heavily low-passed) ──
-  // Reading directly below — not ahead — kills the jitter that turning/uneven
-  // geometry used to cause; the smoothing filter absorbs tiny surface bumps.
+  // ── GROUND HEIGHT + TERRAIN TILT ─────────────────────────────────
+  // Probe straight down at the car centre for its resting height, and at four
+  // points around it for the slope it sits on → realistic pitch/roll. Samples
+  // that differ wildly from centre are walls/cliffs (not drivable slope), so
+  // they're ignored and the car never flips up against a building.
+  let groundHere = _curSurf;
+  let pitchTarget = 0, rollTarget = 0;
   if (window._worldMap) {
-    _groundRay.far = Infinity;
-    _groundRay.set(new THREE.Vector3(pc.position.x, 1500, pc.position.z), _downV);
-    const belowHit = _groundRay.intersectObject(window._worldMap, true);
-    if (belowHit.length) {
-      const groundHere = belowHit[0].point.y;
-      _curSurf += (groundHere - _curSurf) * Math.min(0.07 * dt, 1);
+    groundHere = sampleGround(pc.position.x, pc.position.z, _curSurf);
+    const L = 3.5, MAXSLOPE = 2.2;
+    const fwx = -Math.sin(carAngle), fwz = -Math.cos(carAngle);  // forward
+    const rgx = -Math.cos(carAngle), rgz =  Math.sin(carAngle);  // right
+    const probe = (ax, az) => {
+      const h = sampleGround(pc.position.x + ax, pc.position.z + az, groundHere);
+      return Math.abs(h - groundHere) > MAXSLOPE ? groundHere : h;   // reject walls
+    };
+    const gF = probe( fwx*L,  fwz*L), gB = probe(-fwx*L, -fwz*L);
+    const gR = probe( rgx*L,  rgz*L), gL = probe(-rgx*L, -rgz*L);
+    pitchTarget = Math.max(-0.45, Math.min(0.45, Math.atan2(gB - gF, 2 * L)));
+    rollTarget  = Math.max(-0.45, Math.min(0.45, Math.atan2(gL - gR, 2 * L)));
+  }
+  _curSurf += (groundHere - _curSurf) * Math.min(0.12 * dt, 1);
+
+  // ── VERTICAL PHYSICS — gravity makes a drop off a ledge a smooth,
+  //    accelerating fall instead of an abrupt snap to the new height ──
+  const restY = _curSurf + (window._carLift || 0);
+  if (pc.position.y > restY + 0.06) {
+    carVelY -= GRAVITY * dt;                       // airborne
+    pc.position.y += carVelY * dt;
+    if (pc.position.y < restY) {                   // touchdown
+      pc.position.y = restY;
+      _landImpact = Math.min(Math.abs(carVelY) * 1.1, 0.3); // suspension dip
+      carVelY = 0;
     }
+  } else {
+    pc.position.y += (restY - pc.position.y) * Math.min(0.18 * dt, 1);
+    carVelY = 0;
   }
 
-  pc.rotation.y  = carAngle + Math.PI;   // +PI so the model's nose leads the travel direction (movement is along local -Z, but the model faces +Z)
-  pc.rotation.z  = (left ? 0.06 : right ? -0.06 : 0) * Math.min(Math.abs(carSpeed) * 15, 1);
-
-  // ── Boundaries ────────────────────────────────────────────────
-  const B = CITY - 5;
-  if (pc.position.x >  B) { pc.position.x =  B; carSpeed = 0; }
-  if (pc.position.x < -B) { pc.position.x = -B; carSpeed = 0; }
-  if (pc.position.z >  B) { pc.position.z =  B; carSpeed = 0; }
-  if (pc.position.z < -B) { pc.position.z = -B; carSpeed = 0; }
-
-  // ── Sit on the ground (smoothed lerp) ──
-  {
-    const restY = _curSurf + (window._carLift || 0);
-    pc.position.y += (restY - pc.position.y) * Math.min(0.08 * dt, 1);
-  }
+  // ── ORIENTATION — yaw from steering; pitch/roll eased toward the terrain
+  //    slowly, so slopes, falls & landings are smooth, never a hard flip ──
+  const airborne = pc.position.y > restY + 0.4;
+  _pitch += ((airborne ? 0 : pitchTarget) - _pitch) * Math.min(0.08 * dt, 1);
+  _roll  += ((airborne ? 0 : rollTarget ) - _roll ) * Math.min(0.08 * dt, 1);
+  _landImpact *= Math.pow(0.85, dt);
+  const steerLean = (left ? 0.05 : right ? -0.05 : 0) * Math.min(Math.abs(carSpeed) * 15, 1);
+  pc.rotation.order = 'YXZ';                        // yaw → pitch → roll
+  pc.rotation.y = carAngle + Math.PI;               // +PI so the nose leads travel
+  pc.rotation.x = _pitch + _landImpact;
+  pc.rotation.z = _roll + steerLean;
 
   // ── Enemy traffic ─────────────────────────────────────────────
   score += Math.floor(Math.abs(carSpeed) * 4.5);
