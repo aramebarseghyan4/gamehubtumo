@@ -1,8 +1,8 @@
-# Large 3D assets — too big for git
-*.glb
-*.gltf
-*.hdr
-*.exr
+# Heavy HDR files — keep locally only
+cedar_bridge_sunset_1_8k.hdr
+cedar_bridge_sunset_1_24k.hdr
+plains_sunset_8k.hdr
+plains_sunset_20k.hdr
 
 # macOS
 .DS_Store

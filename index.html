@@ -53,6 +53,16 @@
     /* ── Starfield canvas ── */
     #stars { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
 
+    /* ── Animated aurora glow ── */
+    .aurora { position: fixed; inset: -20%; z-index: 0; pointer-events: none; filter: blur(70px); opacity: 0.5; }
+    .aurora span { position: absolute; border-radius: 50%; mix-blend-mode: screen; }
+    .aurora .a1 { width: 46vw; height: 46vw; left: 8%;  top: 6%;  background: radial-gradient(circle, rgba(157,0,255,0.55), transparent 70%); animation: drift1 18s ease-in-out infinite; }
+    .aurora .a2 { width: 40vw; height: 40vw; right: 6%; top: 18%; background: radial-gradient(circle, rgba(0,180,255,0.40), transparent 70%); animation: drift2 22s ease-in-out infinite; }
+    .aurora .a3 { width: 36vw; height: 36vw; left: 30%; bottom: 2%; background: radial-gradient(circle, rgba(255,80,200,0.35), transparent 70%); animation: drift3 26s ease-in-out infinite; }
+    @keyframes drift1 { 0%,100%{transform:translate(0,0) scale(1);} 50%{transform:translate(8%,10%) scale(1.18);} }
+    @keyframes drift2 { 0%,100%{transform:translate(0,0) scale(1.1);} 50%{transform:translate(-10%,8%) scale(0.92);} }
+    @keyframes drift3 { 0%,100%{transform:translate(0,0) scale(0.95);} 50%{transform:translate(6%,-10%) scale(1.2);} }
+
     /* ── Main card ── */
     .hub {
       position: relative;
@@ -70,8 +80,10 @@
         0 0 0 1px rgba(140,70,255,0.12),
         0 0 50px rgba(157,0,255,0.30),
         0 28px 72px rgba(0,0,0,0.75);
-      max-width: min(90vw, 800px);
+      max-width: min(94vw, 1000px);
       width: 100%;
+      max-height: 94vh;
+      overflow-y: auto;
       animation: hubIn 0.7s cubic-bezier(0.175,0.885,0.32,1.275) both;
     }
     @keyframes hubIn {
@@ -346,6 +358,41 @@
       transform: translateY(-2px);
       box-shadow: 0 0 30px rgba(60,160,255,0.60);
     }
+
+    /* Pink card — 2048 */
+    .game-card.pink { border: 1.5px solid rgba(255,100,200,0.28); box-shadow: 0 0 18px rgba(255,80,190,0.08), 0 8px 32px rgba(0,0,0,0.45); }
+    .game-card.pink:hover { transform: translateY(-10px) scale(1.03); box-shadow: 0 0 48px rgba(255,90,200,0.45), 0 18px 52px rgba(200,40,140,0.22), 0 0 0 1px rgba(255,100,200,0.32); }
+    .game-card.pink .card-title { color: #ff80cc; text-shadow: 0 0 14px rgba(255,90,200,0.4); }
+    .game-card.pink .card-genre { color: rgba(255,120,210,0.7); border: 1px solid rgba(255,100,200,0.25); }
+    .game-card.pink .card-icon  { filter: drop-shadow(0 0 10px rgba(255,90,200,0.55)); }
+    .game-card.pink .card-btn { background: linear-gradient(135deg, #ff66cc, #aa3399); color: #1a0a18; box-shadow: 0 0 18px rgba(255,80,190,0.30); }
+    .game-card.pink:hover .card-btn { transform: translateY(-2px); box-shadow: 0 0 30px rgba(255,80,190,0.60); }
+
+    /* Green card — Memory Match */
+    .game-card.green { border: 1.5px solid rgba(60,230,140,0.28); box-shadow: 0 0 18px rgba(40,220,120,0.08), 0 8px 32px rgba(0,0,0,0.45); }
+    .game-card.green:hover { transform: translateY(-10px) scale(1.03); box-shadow: 0 0 48px rgba(50,230,130,0.45), 0 18px 52px rgba(20,160,90,0.22), 0 0 0 1px rgba(60,230,140,0.32); }
+    .game-card.green .card-title { color: #55ee99; text-shadow: 0 0 14px rgba(50,230,130,0.4); }
+    .game-card.green .card-genre { color: rgba(70,235,150,0.7); border: 1px solid rgba(60,230,140,0.25); }
+    .game-card.green .card-icon  { filter: drop-shadow(0 0 10px rgba(50,230,130,0.55)); }
+    .game-card.green .card-btn { background: linear-gradient(135deg, #44ee99, #18a060); color: #02180e; box-shadow: 0 0 18px rgba(40,220,120,0.30); }
+    .game-card.green:hover .card-btn { transform: translateY(-2px); box-shadow: 0 0 30px rgba(40,220,120,0.60); }
+
+    /* Red card — Brick Blaster */
+    .game-card.red { border: 1.5px solid rgba(255,80,90,0.28); box-shadow: 0 0 18px rgba(255,60,70,0.08), 0 8px 32px rgba(0,0,0,0.45); }
+    .game-card.red:hover { transform: translateY(-10px) scale(1.03); box-shadow: 0 0 48px rgba(255,70,80,0.45), 0 18px 52px rgba(190,30,40,0.22), 0 0 0 1px rgba(255,80,90,0.32); }
+    .game-card.red .card-title { color: #ff6677; text-shadow: 0 0 14px rgba(255,70,90,0.4); }
+    .game-card.red .card-genre { color: rgba(255,100,110,0.7); border: 1px solid rgba(255,80,90,0.25); }
+    .game-card.red .card-icon  { filter: drop-shadow(0 0 10px rgba(255,70,90,0.55)); }
+    .game-card.red .card-btn { background: linear-gradient(135deg, #ff5566, #aa2233); color: #1a0406; box-shadow: 0 0 18px rgba(255,60,80,0.30); }
+    .game-card.red:hover .card-btn { transform: translateY(-2px); box-shadow: 0 0 30px rgba(255,60,80,0.60); }
+
+    /* extended stagger for up to 8 cards */
+    .game-card:nth-child(6) { animation-delay: 0.55s; }
+    .game-card:nth-child(7) { animation-delay: 0.65s; }
+    .game-card:nth-child(8) { animation-delay: 0.75s; }
+    .game-card:nth-child(6) .card-icon { animation-delay: 0.3s; animation-duration: 3.3s; }
+    .game-card:nth-child(7) .card-icon { animation-delay: 1.0s; animation-duration: 2.8s; }
+    .game-card:nth-child(8) .card-icon { animation-delay: 0.5s; animation-duration: 3.6s; }
 
     /* ── Footer ── */
     .hub-footer {
@@ -779,6 +826,7 @@
 <body>
 
   <canvas id="stars"></canvas>
+  <div class="aurora"><span class="a1"></span><span class="a2"></span><span class="a3"></span></div>
 
   <!-- Settings button -->
   <button id="settings-hub-btn">⚙ Settings</button>
@@ -961,10 +1009,34 @@
         <button class="card-btn">▶ PLAY</button>
       </a>
 
+      <a href="game-2048.html" class="game-card pink">
+        <div class="card-icon">🔢</div>
+        <div class="card-title">2048</div>
+        <div class="card-genre">PUZZLE</div>
+        <div class="card-desc">Slide and merge the tiles. Can you reach the legendary 2048?</div>
+        <button class="card-btn">▶ PLAY</button>
+      </a>
+
+      <a href="memory.html" class="game-card green">
+        <div class="card-icon">🧠</div>
+        <div class="card-title">MEMORY MATCH</div>
+        <div class="card-genre">MEMORY</div>
+        <div class="card-desc">Flip the cards and match every pair. Sharpen your memory!</div>
+        <button class="card-btn">▶ PLAY</button>
+      </a>
+
+      <a href="breakout.html" class="game-card red">
+        <div class="card-icon">⚡</div>
+        <div class="card-title">BRICK BLASTER</div>
+        <div class="card-genre">ARCADE</div>
+        <div class="card-desc">Bounce the ball, smash every brick and clear all the levels!</div>
+        <button class="card-btn">▶ PLAY</button>
+      </a>
+
     </div>
 
     <div class="divider"></div>
-    <div class="hub-footer">5 games available</div>
+    <div class="hub-footer">8 games available</div>
   </div>
 
   <script>

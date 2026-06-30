@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Memory Match</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{background:radial-gradient(ellipse at 50% 25%,#062a28 0%,#06120f 70%);
+    color:#d8fff4;font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
+    padding:20px;overflow:hidden;-webkit-tap-highlight-color:transparent;}
+  .back{position:fixed;top:16px;left:16px;z-index:50;text-decoration:none;
+    font-family:'Orbitron',sans-serif;font-size:.74rem;font-weight:700;letter-spacing:.08em;
+    color:#44eecc;background:rgba(8,40,35,.8);border:1px solid rgba(0,220,180,.4);
+    padding:9px 16px;border-radius:10px;backdrop-filter:blur(8px);transition:.18s;}
+  .back:hover{background:rgba(0,160,130,.3);box-shadow:0 0 16px rgba(0,255,200,.4);transform:translateY(-1px);}
+  .title{font-family:'Orbitron',sans-serif;font-size:clamp(1.8rem,6vw,3rem);font-weight:900;
+    letter-spacing:.08em;color:#00ffcc;text-shadow:0 0 14px #00ffcc,0 0 40px rgba(0,255,180,.55);}
+  .stats{display:flex;gap:12px;}
+  .stat{background:linear-gradient(160deg,rgba(8,45,40,.9),rgba(4,22,18,.95));
+    border:1px solid rgba(0,220,180,.3);border-radius:12px;padding:8px 18px;text-align:center;min-width:84px;}
+  .stat .lbl{font-size:.6rem;letter-spacing:.16em;color:#3aa890;text-transform:uppercase;}
+  .stat .val{font-family:'Orbitron',sans-serif;font-size:1.3rem;font-weight:900;color:#7fffd8;}
+  #grid{display:grid;grid-template-columns:repeat(4,var(--c));gap:12px;--c:clamp(64px,18vw,96px);
+    position:relative;}
+  .card{width:var(--c);height:var(--c);border-radius:14px;cursor:pointer;position:relative;
+    transform-style:preserve-3d;transition:transform .4s cubic-bezier(.4,.2,.2,1);}
+  .card.flip,.card.done{transform:rotateY(180deg);}
+  .face{position:absolute;inset:0;border-radius:14px;display:flex;align-items:center;justify-content:center;
+    font-size:clamp(1.8rem,6vw,2.6rem);backface-visibility:hidden;-webkit-backface-visibility:hidden;}
+  .front{background:linear-gradient(150deg,#0a4a40,#06231d);border:1.5px solid rgba(0,220,180,.35);
+    box-shadow:inset 0 0 18px rgba(0,255,200,.08);}
+  .front::after{content:'?';font-family:'Orbitron',sans-serif;font-weight:900;font-size:1.6rem;color:rgba(0,255,200,.3);}
+  .back-f{background:linear-gradient(150deg,#0e6657,#0a3a32);border:1.5px solid rgba(0,255,200,.55);
+    transform:rotateY(180deg);box-shadow:0 0 18px rgba(0,255,200,.3);}
+  .card.done .back-f{border-color:rgba(255,215,0,.7);box-shadow:0 0 24px rgba(255,215,0,.5);
+    animation:matched .4s ease;}
+  @keyframes matched{0%,100%{transform:rotateY(180deg) scale(1);}50%{transform:rotateY(180deg) scale(1.12);}}
+  .hint{font-size:.78rem;color:#3a8878;letter-spacing:.04em;}
+  .btn{font-family:'Orbitron',sans-serif;font-weight:900;letter-spacing:.06em;cursor:pointer;border:none;
+    border-radius:11px;padding:11px 30px;font-size:.82rem;color:#001a16;
+    background:linear-gradient(135deg,#00ffcc,#00b090);box-shadow:0 0 18px rgba(0,255,200,.35);transition:.15s;}
+  .btn:hover{transform:translateY(-2px);box-shadow:0 0 28px rgba(0,255,200,.6);}
+  #win{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;
+    gap:18px;background:rgba(4,14,11,.9);backdrop-filter:blur(6px);z-index:100;}
+  #win.show{display:flex;}
+  #win .big{font-family:'Orbitron',sans-serif;font-size:2.4rem;font-weight:900;color:#ffd700;
+    text-shadow:0 0 30px rgba(255,200,0,.6);}
+  #win .sub{color:#7fffd8;font-size:1rem;}
+</style>
+</head>
+<body>
+  <a href="index.html" class="back">← HUB</a>
+  <div class="title">🧠 MEMORY MATCH</div>
+  <div class="stats">
+    <div class="stat"><div class="lbl">Moves</div><div class="val" id="moves">0</div></div>
+    <div class="stat"><div class="lbl">Pairs</div><div class="val" id="pairs">0/8</div></div>
+    <div class="stat"><div class="lbl">Time</div><div class="val" id="time">0s</div></div>
+  </div>
+  <div id="grid"></div>
+  <div class="hint">Flip two cards · match all 8 pairs</div>
+  <button class="btn" onclick="newGame()">↻ NEW GAME</button>
+  <div id="win"><div class="big">🎉 YOU WIN!</div><div class="sub" id="winsub"></div><button class="btn" onclick="newGame()">▶ PLAY AGAIN</button></div>
+
+<script>
+'use strict';
+const SYMBOLS=['🚀','👾','🎮','⚡','🔥','💎','🌟','🎯'];
+const gridEl=document.getElementById('grid');
+let cards,first,second,lock,moves,matched,timer,seconds;
+
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+function newGame(){
+  clearInterval(timer);seconds=0;moves=0;matched=0;first=second=null;lock=false;
+  document.getElementById('moves').textContent=0;
+  document.getElementById('pairs').textContent='0/8';
+  document.getElementById('time').textContent='0s';
+  document.getElementById('win').classList.remove('show');
+  const deck=shuffle([...SYMBOLS,...SYMBOLS]);
+  gridEl.innerHTML='';
+  cards=deck.map((sym,i)=>{
+    const c=document.createElement('div');c.className='card';c.dataset.sym=sym;
+    c.innerHTML='<div class="face front"></div><div class="face back-f">'+sym+'</div>';
+    c.addEventListener('click',()=>flip(c));
+    gridEl.appendChild(c);return c;
+  });
+  timer=setInterval(()=>{seconds++;document.getElementById('time').textContent=seconds+'s';},1000);
+}
+function flip(c){
+  if(lock||c===first||c.classList.contains('done'))return;
+  c.classList.add('flip');
+  if(!first){first=c;return;}
+  second=c;lock=true;moves++;document.getElementById('moves').textContent=moves;
+  if(first.dataset.sym===second.dataset.sym){
+    setTimeout(()=>{
+      first.classList.add('done');second.classList.add('done');
+      matched++;document.getElementById('pairs').textContent=matched+'/8';
+      first=second=null;lock=false;
+      if(matched===8)winGame();
+    },380);
+  }else{
+    setTimeout(()=>{first.classList.remove('flip');second.classList.remove('flip');
+      first=second=null;lock=false;},800);
+  }
+}
+function winGame(){
+  clearInterval(timer);
+  document.getElementById('winsub').textContent=`Solved in ${moves} moves · ${seconds}s`;
+  setTimeout(()=>document.getElementById('win').classList.add('show'),500);
+}
+newGame();
+</script>
+</body>
+</html>

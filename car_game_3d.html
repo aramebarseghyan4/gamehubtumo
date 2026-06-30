@@ -70,11 +70,30 @@
       background:linear-gradient(180deg,#fff 0%,#f0d080 60%,#b08030 100%);
       -webkit-background-clip:text; -webkit-text-fill-color:transparent;
       margin-bottom:4px; line-height:1;
+      animation:titleGlow 3.2s ease-in-out infinite;
+    }
+    @keyframes titleGlow {
+      0%,100% { filter:drop-shadow(0 0 18px rgba(240,208,128,0.35)); }
+      50%     { filter:drop-shadow(0 0 42px rgba(240,208,128,0.75)); }
     }
     #startPanel .subtitle {
       font-size:12px; letter-spacing:6px; color:rgba(255,255,255,0.35);
-      margin-bottom:48px;
+      margin-bottom:14px;
     }
+    /* decorative accent line under subtitle */
+    #startPanel .accent {
+      width:120px; height:2px; margin-bottom:34px; border-radius:2px;
+      background:linear-gradient(90deg,transparent,#f0d080,transparent);
+      animation:accentPulse 3.2s ease-in-out infinite;
+    }
+    @keyframes accentPulse { 0%,100%{opacity:0.5;width:120px;} 50%{opacity:1;width:200px;} }
+    /* animated aurora glow behind the menu */
+    #menu-aurora { position:absolute; inset:0; z-index:6; pointer-events:none; overflow:hidden; }
+    #menu-aurora span { position:absolute; border-radius:50%; filter:blur(80px); mix-blend-mode:screen; }
+    #menu-aurora .m1 { width:50vw; height:50vw; left:6%;  top:8%;  background:radial-gradient(circle,rgba(240,160,40,0.45),transparent 70%); animation:mDrift1 16s ease-in-out infinite; }
+    #menu-aurora .m2 { width:42vw; height:42vw; right:4%; top:24%; background:radial-gradient(circle,rgba(200,60,30,0.35),transparent 70%); animation:mDrift2 20s ease-in-out infinite; }
+    @keyframes mDrift1 { 0%,100%{transform:translate(0,0) scale(1);} 50%{transform:translate(8%,12%) scale(1.18);} }
+    @keyframes mDrift2 { 0%,100%{transform:translate(0,0) scale(1.1);} 50%{transform:translate(-10%,6%) scale(0.9);} }
     .q-row { display:flex; gap:10px; margin-bottom:6px; }
     .q-label { font-size:11px; letter-spacing:3px; color:rgba(255,255,255,0.3); margin-bottom:12px; }
     .q-btn {
@@ -164,20 +183,22 @@
 <div id="overlay-bg" style="position:absolute;inset:0;display:none;background:linear-gradient(160deg,#060810 0%,#0e0d1a 50%,#050608 100%);z-index:5;"></div>
 <!-- animated grid lines -->
 <canvas id="bg-canvas" style="position:absolute;inset:0;display:none;z-index:6;pointer-events:none;"></canvas>
+<div id="menu-aurora" style="display:none;"><span class="m1"></span><span class="m2"></span></div>
 
 <div id="overlay" style="z-index:7;">
   <!-- ── START PANEL ── -->
   <div id="startPanel">
     <div class="title">CITY<br>DRIVE</div>
     <div class="subtitle">FREE RIDE • OPEN WORLD</div>
+    <div class="accent"></div>
 
     <div class="q-label">GRAPHICS QUALITY</div>
     <div class="q-row">
-      <div class="q-btn" onclick="setQuality('low')" id="q-low">LOW</div>
-      <div class="q-btn q-active" onclick="setQuality('medium')" id="q-medium">MEDIUM</div>
+      <div class="q-btn q-active" onclick="setQuality('low')" id="q-low">LOW</div>
+      <div class="q-btn" onclick="setQuality('medium')" id="q-medium">MEDIUM</div>
       <div class="q-btn" onclick="setQuality('high')" id="q-high">HIGH</div>
     </div>
-    <div id="q-desc">Cedar Bridge 8K — clouds</div>
+    <div id="q-desc">Procedural sunset — fastest</div>
 
     <button class="start-btn" onclick="startGame()">START ENGINE</button>
 
@@ -204,11 +225,11 @@
   <div class="s-title">SETTINGS</div>
   <div class="q-label" style="margin-bottom:10px;">GRAPHICS QUALITY</div>
   <div class="q-row" style="margin-bottom:8px;">
-    <div class="q-btn" onclick="setQuality('low');applyQualityInGame()" id="sq-low">LOW</div>
-    <div class="q-btn q-active" onclick="setQuality('medium');applyQualityInGame()" id="sq-medium">MED</div>
+    <div class="q-btn q-active" onclick="setQuality('low');applyQualityInGame()" id="sq-low">LOW</div>
+    <div class="q-btn" onclick="setQuality('medium');applyQualityInGame()" id="sq-medium">MED</div>
     <div class="q-btn" onclick="setQuality('high');applyQualityInGame()" id="sq-high">HIGH</div>
   </div>
-  <div id="sq-desc" style="font-size:11px;color:rgba(255,255,255,0.3);margin-bottom:14px;">Cedar Bridge 8K</div>
+  <div id="sq-desc" style="font-size:11px;color:rgba(255,255,255,0.3);margin-bottom:14px;">Procedural</div>
   <div style="font-size:11px;color:rgba(255,255,255,0.2);">* Requires page reload to apply</div>
 </div>
 
@@ -243,11 +264,11 @@ const CAR_MODEL_URL = 'old_rusty_car.glb';
 // Set a path once you have a .hdr file:  'hdr/venice_sunset_1k.hdr'
 // Free HDRIs: https://polyhaven.com/hdris  (download "1k", outdoor/city)
 const QUALITY = {
-  low:    { hdr: 'cedar_bridge_sunset_1_1k.hdr',   label: 'Cedar Bridge 1K — быстро' },
-  medium: { hdr: 'cedar_bridge_sunset_1_8k.hdr',   label: 'Cedar Bridge 8K — облака' },
-  high:   { hdr: 'cedar_bridge_sunset_1_24k.hdr',  label: 'Cedar Bridge 24K — максимум' },
+  low:    { hdr: null,                            label: 'Procedural sunset — fastest' },
+  medium: { hdr: 'cedar_bridge_sunset_1_1k.hdr',  label: 'Cedar Bridge HDR — reflections' },
+  high:   { hdr: 'plains_sunset_1k.hdr',          label: 'Plains Sunset HDR — bright sky' },
 };
-let selectedQuality = 'medium';
+let selectedQuality = 'low';
 let HDR_URL = QUALITY[selectedQuality].hdr;
 
 function setQuality(q) {
@@ -266,7 +287,7 @@ function setQuality(q) {
   if (menuEl) menuEl.classList.add('q-active');
   const sgEl = document.getElementById('sq-' + q);
   if (sgEl) sgEl.classList.add('q-active');
-  const labelShort = { low:'Cedar Bridge 1K', medium:'Cedar Bridge 8K', high:'Cedar Bridge 24K' }[q];
+  const labelShort = { low:'Procedural', medium:'Cedar HDR', high:'Plains HDR' }[q];
   const descEl = document.getElementById('q-desc');
   if (descEl) descEl.textContent = QUALITY[q].label;
   const sdescEl = document.getElementById('sq-desc');
@@ -313,13 +334,13 @@ renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled  = true;
 renderer.shadowMap.type     = THREE.PCFSoftShadowMap;
 renderer.toneMapping        = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.0;
+renderer.toneMappingExposure = 1.3;
 renderer.physicallyCorrectLights = true;
 document.body.appendChild(renderer.domElement);
 renderer.domElement.style.display = 'none'; // revealed after load
 
 const scene  = new THREE.Scene();
-scene.fog    = new THREE.Fog(0xc8bfb0, 150, 1600); // far fog pushed back for the big world
+scene.fog    = new THREE.Fog(0xff9966, 200, 1200); // warm sunset fog
 
 // IMPORTANT: camera must NOT start at (0,0,0) — that puts it inside the car,
 // backface culling makes the car invisible. Start offset behind spawn point.
@@ -340,9 +361,9 @@ try {
 
   const bloom = new THREE.UnrealBloomPass(
     new THREE.Vector2(innerWidth, innerHeight),
-    0.55,   // strength  — 0.3 subtle · 1.2 dramatic
-    0.5,    // radius    — 0 tight halo · 1 wide feather
-    0.72    // threshold — lower value = more surfaces glow
+    0.5,    // strength
+    0.6,    // radius
+    0.82    // threshold — higher = only the brightest glow, less blowout
   );
   bloom.renderToScreen = true; // last pass → writes to canvas
   composer.addPass(bloom);
@@ -492,27 +513,41 @@ async function buildCity() {
 
     function buildFallbackSky() {
       setProgress(5, 'Setting up lighting...');
-      scene.add(new THREE.HemisphereLight(0xbcd4f0, 0x55606e, 1.2)); // balanced sky fill for the big model
-      scene.add(new THREE.AmbientLight(0xffffff, 0.85));              // lifts the shadowed canyons without blowing out roofs
-      // Gradient sky sphere — replaced by HDR panorama when HDR_URL is active
+      scene.add(new THREE.HemisphereLight(0xffd090, 0x3a2a1a, 1.8));
+      scene.add(new THREE.AmbientLight(0xff9966, 0.7));
+      // Sunset gradient sky
       const cv = document.createElement('canvas'); cv.width = 2; cv.height = 512;
       const cx = cv.getContext('2d');
       const g  = cx.createLinearGradient(0, 0, 0, 512);
-      g.addColorStop(0,    '#3a6090');
-      g.addColorStop(0.3,  '#6888b0');
-      g.addColorStop(0.65, '#a0aab8');
-      g.addColorStop(0.85, '#c8bfb0');
-      g.addColorStop(1,    '#d8c8a8');
+      g.addColorStop(0,    '#0a0a1a'); // deep night blue at top
+      g.addColorStop(0.25, '#1a2a6c'); // dark blue
+      g.addColorStop(0.5,  '#b21f1f'); // deep red
+      g.addColorStop(0.75, '#ff6a00'); // orange
+      g.addColorStop(0.88, '#ffcc44'); // yellow horizon
+      g.addColorStop(1,    '#ffaa33'); // warm ground glow
       cx.fillStyle = g; cx.fillRect(0, 0, 2, 512);
       scene.add(new THREE.Mesh(
         new THREE.SphereGeometry(1800, 32, 16),
         new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cv), side: THREE.BackSide })
       ));
-      const sun = makeSun(2.5);
+      // glowing sun disk at the horizon
+      const sunHalo = new THREE.Sprite(new THREE.SpriteMaterial({
+        map: _glowTex, color: 0xff7a30, transparent: true,
+        blending: THREE.AdditiveBlending, depthWrite: false,
+      }));
+      sunHalo.scale.set(460, 460, 1); sunHalo.position.set(-480, 150, -950); scene.add(sunHalo);
+      const sunCore = new THREE.Sprite(new THREE.SpriteMaterial({
+        map: _glowTex, color: 0xffe070, transparent: true,
+        blending: THREE.AdditiveBlending, depthWrite: false,
+      }));
+      sunCore.scale.set(190, 190, 1); sunCore.position.copy(sunHalo.position); scene.add(sunCore);
+      const sun = makeSun(3.0);
+      sun.color.setHex(0xff9944);
       scene.add(sun); scene.add(sun.target);
       window._sun = sun;
-      const fill = new THREE.DirectionalLight(0xb0c8e0, 0.7);
-      fill.position.set(-200, 150, -160); scene.add(fill);
+      // cool blue fill from opposite side
+      const fill = new THREE.DirectionalLight(0x4466aa, 0.4);
+      fill.position.set(-200, 80, -160); scene.add(fill);
     }
 
     if (HDR_URL) {
@@ -526,13 +561,14 @@ async function buildCity() {
           const envMap = pmrem.fromEquirectangular(hdrTex).texture;
           scene.environment = envMap;
           scene.background  = envMap;
-          scene.environmentIntensity = 1.8;
+          scene.environmentIntensity = 1.6;
           hdrTex.dispose(); pmrem.dispose();
-          const sun = makeSun(2.2);
+          const sun = makeSun(2.8);
+          sun.color.setHex(0xff9944);
           scene.add(sun); scene.add(sun.target);
           window._sun = sun;
-          scene.add(new THREE.AmbientLight(0xffe0cc, 0.6));
-          renderer.toneMappingExposure = 0.7;
+          scene.add(new THREE.AmbientLight(0xff7733, 0.5));
+          renderer.toneMappingExposure = 0.75;
           setProgress(15, 'Environment loaded.');
           resolve();
         },
@@ -651,7 +687,15 @@ async function buildCity() {
           world.traverse(ch => {
             if (!ch.isMesh) return;
             ch.castShadow = true; ch.receiveShadow = true;
-            if (ch.material) ch.material.side = THREE.FrontSide;
+            const mats = Array.isArray(ch.material) ? ch.material : [ch.material];
+            mats.forEach(m => {
+              if (!m) return;
+              m.side = THREE.FrontSide;
+              if ('roughness' in m) {            // wet-look: glossier surfaces catch sun + light reflections
+                m.roughness = Math.min(m.roughness, 0.55);
+                m.envMapIntensity = 1.3;
+              }
+            });
           });
           scene.add(world);
           window._worldMap = world;
@@ -677,8 +721,137 @@ async function buildCity() {
     window._carLift  = 0;      // car sits at y = 0
   }
 
+  buildAtmosphere(window._playerCar);
+
   setProgress(100, 'Ready!');
   await new Promise(r => setTimeout(r, 350));
+}
+
+// ════════════════════════════════════════════════════════════════
+//  ATMOSPHERE — city lights · sun disk · street lamps · headlights · dust
+// ════════════════════════════════════════════════════════════════
+function makeRadialTexture(inner, outer) {
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const x = c.getContext('2d');
+  const g = x.createRadialGradient(32, 32, 0, 32, 32, 32);
+  g.addColorStop(0, inner); g.addColorStop(0.35, inner); g.addColorStop(1, outer);
+  x.fillStyle = g; x.fillRect(0, 0, 64, 64);
+  return new THREE.CanvasTexture(c);
+}
+const _glowTex = makeRadialTexture('rgba(255,238,205,1)', 'rgba(255,170,70,0)');
+const _dustTex = makeRadialTexture('rgba(120,105,85,0.55)', 'rgba(120,105,85,0)');
+
+function buildAtmosphere(car) {
+  // ── distant window / city lights (glowing point field) ──
+  const N = 260;
+  const pos = new Float32Array(N * 3), col = new Float32Array(N * 3);
+  const pal = [[1,0.82,0.45],[1,0.68,0.30],[0.65,0.80,1],[1,0.92,0.70]];
+  for (let i = 0; i < N; i++) {
+    pos[i*3]   = (Math.random() - 0.5) * 560;
+    pos[i*3+1] = 4 + Math.random() * 75;
+    pos[i*3+2] = (Math.random() - 0.5) * 560;
+    const c2 = pal[(Math.random() * pal.length) | 0];
+    col[i*3] = c2[0]; col[i*3+1] = c2[1]; col[i*3+2] = c2[2];
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  geo.setAttribute('color',    new THREE.BufferAttribute(col, 3));
+  scene.add(new THREE.Points(geo, new THREE.PointsMaterial({
+    size: 4, map: _glowTex, vertexColors: true, transparent: true,
+    blending: THREE.AdditiveBlending, depthWrite: false, sizeAttenuation: true,
+  })));
+
+  // ── street lamps around the spawn (real warm light + glow halo) ──
+  for (let i = 0; i < 6; i++) {
+    const a = (i / 6) * Math.PI * 2;
+    const r = 30 + (i % 2) * 22;
+    const lx = Math.cos(a) * r, lz = Math.sin(a) * r;
+    const pl = new THREE.PointLight(0xffb860, 180, 70, 2);
+    pl.position.set(lx, 9, lz); scene.add(pl);
+    const gl = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: _glowTex, color: 0xffc070, transparent: true, opacity: 0.85,
+      blending: THREE.AdditiveBlending, depthWrite: false,
+    }));
+    gl.scale.set(4.5, 4.5, 1); gl.position.set(lx, 9, lz); scene.add(gl);
+  }
+
+  // ── car headlights (two spotlights + visible glow) ──
+  const mkSpot = () => {
+    const s = new THREE.SpotLight(0xfff2d8, 160, 90, Math.PI / 7, 0.5, 1.8);
+    s.castShadow = false; scene.add(s); scene.add(s.target);
+    return s;
+  };
+  window._headL = mkSpot(); window._headR = mkSpot();
+  const mkHeadGlow = () => {
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: _glowTex, color: 0xfff0d0, transparent: true, opacity: 0.7,
+      blending: THREE.AdditiveBlending, depthWrite: false,
+    }));
+    sp.scale.set(1.3, 1.3, 1); scene.add(sp); return sp;
+  };
+  window._headGlowL = mkHeadGlow(); window._headGlowR = mkHeadGlow();
+
+  // ── dust particle pool (kicked up behind the car) ──
+  const dust = [];
+  for (let i = 0; i < 36; i++) {
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: _dustTex, transparent: true, depthWrite: false, opacity: 0,
+    }));
+    sp.visible = false; sp.scale.set(0.01, 0.01, 1); scene.add(sp);
+    dust.push({ sp, life: 0, vx: 0, vy: 0, vz: 0 });
+  }
+  window._dust = dust; window._dustNext = 0;
+}
+
+function updateAtmosphere(dt) {
+  const pc = window._playerCar; if (!pc) return;
+  const s = Math.sin(carAngle), c = Math.cos(carAngle);
+
+  // headlights follow the car's nose
+  if (window._headL) {
+    const fwx = -s, fwz = -c, sdx = -c, sdz = s, y = pc.position.y + 0.9;
+    // lamps sit right at the front bumper (~3.2 units ahead of centre)
+    window._headL.position.set(pc.position.x + fwx*3.2 + sdx*1.3, y, pc.position.z + fwz*3.2 + sdz*1.3);
+    window._headR.position.set(pc.position.x + fwx*3.2 - sdx*1.3, y, pc.position.z + fwz*3.2 - sdz*1.3);
+    // lit pool kept close to the car (was 35 — far away)
+    const tx = pc.position.x + fwx*16, tz = pc.position.z + fwz*16, ty = pc.position.y + 0.1;
+    window._headL.target.position.set(tx, ty, tz);
+    window._headR.target.position.set(tx, ty, tz);
+    window._headGlowL.position.copy(window._headL.position);
+    window._headGlowR.position.copy(window._headR.position);
+  }
+
+  // dust behind the car
+  const dust = window._dust;
+  if (dust) {
+    const spd = Math.abs(carSpeed);
+    if (spd > 0.12) {
+      const d = dust[window._dustNext];
+      window._dustNext = (window._dustNext + 1) % dust.length;
+      d.sp.position.set(
+        pc.position.x + s*2.2 + (Math.random() - 0.5) * 1.2,
+        pc.position.y + 0.3,
+        pc.position.z + c*2.2 + (Math.random() - 0.5) * 1.2
+      );
+      d.life = 1;
+      d.vx = (Math.random() - 0.5) * 0.08;
+      d.vy = 0.05 + Math.random() * 0.03;
+      d.vz = (Math.random() - 0.5) * 0.08;
+      d.sp.visible = true;
+    }
+    for (const d of dust) {
+      if (d.life > 0) {
+        d.life -= dt * 0.045;
+        d.sp.position.x += d.vx * dt;
+        d.sp.position.y += d.vy * dt;
+        d.sp.position.z += d.vz * dt;
+        const sc = (1 - d.life) * 4 + 1;
+        d.sp.scale.set(sc, sc, 1);
+        d.sp.material.opacity = Math.max(0, d.life) * 0.5;
+        if (d.life <= 0) d.sp.visible = false;
+      }
+    }
+  }
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -764,6 +937,7 @@ function updateHUD() {
 function showMenuUI(showStart) {
   document.getElementById('overlay-bg').style.display = 'block';
   document.getElementById('bg-canvas').style.display  = 'block';
+  document.getElementById('menu-aurora').style.display = 'block';
   document.getElementById('overlay').style.display    = 'flex';
   document.getElementById('startPanel').style.display = showStart ? 'flex' : 'none';
   document.getElementById('goPanel').style.display    = showStart ? 'none' : 'flex';
@@ -774,6 +948,7 @@ function showMenuUI(showStart) {
 function hideMenuUI() {
   document.getElementById('overlay-bg').style.display = 'none';
   document.getElementById('bg-canvas').style.display  = 'none';
+  document.getElementById('menu-aurora').style.display = 'none';
   document.getElementById('overlay').style.display    = 'none';
   document.getElementById('settings-btn').style.display = 'flex';
   stopBgAnimation();
@@ -853,6 +1028,10 @@ function restartGame() {
 // ════════════════════════════════════════════════════════════════
 const renderFrame = () => useComposer ? composer.render() : renderer.render(scene, camera);
 let prev = 0, camX = 0, camY = 10, camZ = 20;
+let _lookX = 0, _lookY = 0, _lookZ = 0, _lookInit = false;
+// frame-rate-independent exponential smoothing: same feel at 30fps or 144fps,
+// so low/variable framerate no longer makes the camera judder.
+const fSmooth = (rate, dt) => 1 - Math.pow(1 - rate, dt);
 
 // Collision + ground. A downward ray probes the surface just ahead of the car.
 // Ground at or below DRIVE_CAP is drivable; anything taller is a solid wall /
@@ -886,45 +1065,52 @@ function animate(ts) {
   const pc = window._playerCar;
   if (!pc) { renderFrame(); return; }
 
-  const lk     = gameRunning ? Math.min(0.12 * dt, 1) : 1;
-  const lkSlow = gameRunning ? Math.min(0.05 * dt, 1) : 1; // плавный Y чтобы не дрожало
+  const snap = !gameRunning;
+  const f     = snap ? 1 : fSmooth(0.12, dt);   // camera XZ
+  const fY    = snap ? 1 : fSmooth(0.05, dt);   // camera Y (slower → no vertical judder)
+  const fTop  = snap ? 1 : fSmooth(0.12, dt);
+  const fLook = snap ? 1 : fSmooth(0.20, dt);   // aim target (fast but hitch-proof)
 
+  // target camera position + target look point per view
+  let tCX, tCY, tCZ, fCY, tLX, tLY, tLZ;
   if (camView === 0) {
     // ── Behind (3rd person) ──
-    const tCX = pc.position.x + Math.sin(carAngle) * 18;
-    const tCZ = pc.position.z + Math.cos(carAngle) * 18;
-    camX += (tCX - camX) * lk; camZ += (tCZ - camZ) * lk;
-    camY += ((pc.position.y + 10) - camY) * lkSlow; // Y отдельно — медленнее, без дрожи
-    camera.position.set(camX, camY, camZ);
-    camera.lookAt(pc.position.x, pc.position.y + 1.5, pc.position.z);
-
+    tCX = pc.position.x + Math.sin(carAngle) * 18;
+    tCZ = pc.position.z + Math.cos(carAngle) * 18;
+    tCY = pc.position.y + 10; fCY = fY;
+    tLX = pc.position.x; tLY = pc.position.y + 1.5; tLZ = pc.position.z;
   } else if (camView === 1) {
     // ── Top-down (bird's eye) ──
-    const tCX = pc.position.x;
-    const tCZ = pc.position.z;
-    camX += (tCX - camX) * lk; camZ += (tCZ - camZ) * lk; camY += ((pc.position.y + 38) - camY) * lk; // height follows the car's terrain elevation
-    camera.position.set(camX, camY, camZ);
-    camera.lookAt(pc.position.x, pc.position.y, pc.position.z);
-
+    tCX = pc.position.x; tCZ = pc.position.z;
+    tCY = pc.position.y + 38; fCY = fTop;
+    tLX = pc.position.x; tLY = pc.position.y; tLZ = pc.position.z;
   } else if (camView === 2) {
-    // ── First person (driver seat — inside the car) ──
-    const fpX = pc.position.x - Math.sin(carAngle) * 1.2;
-    const fpZ = pc.position.z - Math.cos(carAngle) * 1.2;
-    const fpY = pc.position.y + 2.0;
-    camX += (fpX - camX) * lk; camZ += (fpZ - camZ) * lk; camY += (fpY - camY) * lk;
-    camera.position.set(camX, camY, camZ);
-    const lookX = pc.position.x - Math.sin(carAngle) * 50;
-    const lookZ = pc.position.z - Math.cos(carAngle) * 50;
-    camera.lookAt(lookX, fpY - 0.3, lookZ);
-
+    // ── First person (driver seat) ──
+    tCX = pc.position.x - Math.sin(carAngle) * 1.2;
+    tCZ = pc.position.z - Math.cos(carAngle) * 1.2;
+    tCY = pc.position.y + 2.0; fCY = f;
+    tLX = pc.position.x - Math.sin(carAngle) * 50;
+    tLY = pc.position.y + 1.7;
+    tLZ = pc.position.z - Math.cos(carAngle) * 50;
   } else {
-    // ── Side (կողքից — camera to the left of the car) ──
-    const sideX = pc.position.x + Math.cos(carAngle) * 12;
-    const sideZ = pc.position.z - Math.sin(carAngle) * 12;
-    camX += (sideX - camX) * lk; camZ += (sideZ - camZ) * lk; camY += ((pc.position.y + 4) - camY) * lk; // height follows the car's terrain elevation
-    camera.position.set(camX, camY, camZ);
-    camera.lookAt(pc.position.x, pc.position.y + 1.0, pc.position.z);
+    // ── Side ──
+    tCX = pc.position.x + Math.cos(carAngle) * 12;
+    tCZ = pc.position.z - Math.sin(carAngle) * 12;
+    tCY = pc.position.y + 4; fCY = f;
+    tLX = pc.position.x; tLY = pc.position.y + 1.0; tLZ = pc.position.z;
   }
+
+  camX += (tCX - camX) * f;
+  camZ += (tCZ - camZ) * f;
+  camY += (tCY - camY) * fCY;
+  camera.position.set(camX, camY, camZ);
+
+  // smoothed look target — filters any per-frame jitter out of the aim too
+  if (!_lookInit) { _lookX = tLX; _lookY = tLY; _lookZ = tLZ; _lookInit = true; }
+  _lookX += (tLX - _lookX) * fLook;
+  _lookY += (tLY - _lookY) * fLook;
+  _lookZ += (tLZ - _lookZ) * fLook;
+  camera.lookAt(_lookX, _lookY, _lookZ);
 
   // Shadow frustum tracks the player so shadows are always sharp around the car
   if (window._sun) {
@@ -932,6 +1118,8 @@ function animate(ts) {
     window._sun.target.position.copy(pc.position);
     window._sun.shadow.camera.updateProjectionMatrix();
   }
+
+  updateAtmosphere(dt);
 
   if (!gameRunning) { renderFrame(); return; }
 
@@ -972,33 +1160,42 @@ function animate(ts) {
   const nx = pc.position.x + dx;
   const nz = pc.position.z + dz;
 
-  let surfaceY = _curSurf, blocked = false;
-  if (window._worldMap) {
-    // вертикальный луч — определяем высоту поверхности впереди
-    const look = Math.abs(carSpeed) > 0.002 ? 2.5 / (Math.hypot(dx, dz) || 1) : 0;
-    _groundRay.set(new THREE.Vector3(nx + dx * look, 1500, nz + dz * look), _downV);
-    const hit = _groundRay.intersectObject(window._worldMap, true);
-    surfaceY = hit.length ? hit[0].point.y : _curSurf;
-    if (Math.abs(carSpeed) > 0.002 && surfaceY - _curSurf > MAX_STEP) blocked = true;
+  // ── STEP / WALL detection (probe AHEAD only — decides if the move is blocked) ──
+  let blocked = false;
+  if (window._worldMap && Math.abs(carSpeed) > 0.002) {
+    // height just ahead — too tall a step = curb / wall we can't climb
+    _groundRay.far = Infinity;
+    _groundRay.set(new THREE.Vector3(nx, 1500, nz), _downV);
+    const aheadHit = _groundRay.intersectObject(window._worldMap, true);
+    if (aheadHit.length && aheadHit[0].point.y - _curSurf > MAX_STEP) blocked = true;
 
-    // горизонтальный луч — ловим стены и боковые части машин
-    if (!blocked && Math.abs(carSpeed) > 0.002) {
+    // horizontal ray catches vertical walls / sides of parked cars
+    if (!blocked) {
       const dir = new THREE.Vector3(-Math.sin(carAngle), 0, -Math.cos(carAngle)).normalize();
       _groundRay.set(new THREE.Vector3(pc.position.x, pc.position.y + 0.8, pc.position.z), dir);
       _groundRay.far = 2.2;
-      const wallHit = _groundRay.intersectObject(window._worldMap, true);
-      if (wallHit.length > 0) blocked = true;
+      if (_groundRay.intersectObject(window._worldMap, true).length > 0) blocked = true;
       _groundRay.far = Infinity;
     }
   }
 
   if (blocked) {
-    carSpeed *= -0.25;                              // bump back off the wall
+    carSpeed = 0;                                  // stop dead — no bounce = no jitter
   } else {
     pc.position.x = nx; pc.position.z = nz;
-    const surfDelta = surfaceY - _curSurf;
-    // Ограничиваем изменение Y за кадр — убирает дрожь от неровной геометрии
-    _curSurf += Math.max(-0.08, Math.min(0.08, surfDelta * 0.06 * dt));
+  }
+
+  // ── RESTING HEIGHT (probe straight DOWN at the car centre, heavily low-passed) ──
+  // Reading directly below — not ahead — kills the jitter that turning/uneven
+  // geometry used to cause; the smoothing filter absorbs tiny surface bumps.
+  if (window._worldMap) {
+    _groundRay.far = Infinity;
+    _groundRay.set(new THREE.Vector3(pc.position.x, 1500, pc.position.z), _downV);
+    const belowHit = _groundRay.intersectObject(window._worldMap, true);
+    if (belowHit.length) {
+      const groundHere = belowHit[0].point.y;
+      _curSurf += (groundHere - _curSurf) * Math.min(0.07 * dt, 1);
+    }
   }
 
   pc.rotation.y  = carAngle + Math.PI;   // +PI so the model's nose leads the travel direction (movement is along local -Z, but the model faces +Z)
@@ -1006,15 +1203,15 @@ function animate(ts) {
 
   // ── Boundaries ────────────────────────────────────────────────
   const B = CITY - 5;
-  if (pc.position.x >  B) { pc.position.x =  B; carSpeed *= -0.3; }
-  if (pc.position.x < -B) { pc.position.x = -B; carSpeed *= -0.3; }
-  if (pc.position.z >  B) { pc.position.z =  B; carSpeed *= -0.3; }
-  if (pc.position.z < -B) { pc.position.z = -B; carSpeed *= -0.3; }
+  if (pc.position.x >  B) { pc.position.x =  B; carSpeed = 0; }
+  if (pc.position.x < -B) { pc.position.x = -B; carSpeed = 0; }
+  if (pc.position.z >  B) { pc.position.z =  B; carSpeed = 0; }
+  if (pc.position.z < -B) { pc.position.z = -B; carSpeed = 0; }
 
-  // ── Sit on the ground (clamped so it never rides up onto tall structures) ──
+  // ── Sit on the ground (smoothed lerp) ──
   {
     const restY = _curSurf + (window._carLift || 0);
-    pc.position.y += (restY - pc.position.y) * 0.06;
+    pc.position.y += (restY - pc.position.y) * Math.min(0.08 * dt, 1);
   }
 
   // ── Enemy traffic ─────────────────────────────────────────────
