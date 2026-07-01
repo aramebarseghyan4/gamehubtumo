@@ -30,7 +30,7 @@
       border-radius:8px; overflow:hidden; display:none;
     }
     #speedometer {
-      position:absolute; bottom:22px; left:22px; display:none;
+      position:absolute; bottom:22px; left:50%; transform:translateX(-50%); display:none;
       pointer-events:none;
     }
     #controls { display:none; }
@@ -172,11 +172,6 @@
 <div id="minimap"><canvas id="mmCanvas" width="140" height="140"></canvas></div>
 <div id="controls"></div>
 <div id="speedometer"><canvas id="spdCanvas" width="160" height="160"></canvas></div>
-<div id="ignition-btn" onclick="if(flipped)rightCar();else startEngine();"
-  style="position:fixed;left:50%;bottom:96px;transform:translateX(-50%);z-index:25;display:none;
-  padding:14px 28px;font:700 17px 'Segoe UI',sans-serif;letter-spacing:1px;border:none;border-radius:12px;
-  background:linear-gradient(135deg,#19c463,#0a8f43);color:#04331a;cursor:pointer;
-  box-shadow:0 6px 22px rgba(0,0,0,0.45);user-select:none;"></div>
 <div id="cam-switcher">
   <div class="cam-opt active" onclick="setCamera(0)"><div class="ico">📷</div>BEHIND</div>
   <div class="cam-opt"        onclick="setCamera(1)"><div class="ico">🦅</div>TOP</div>
@@ -211,8 +206,8 @@
     <div class="controls-hint">
       W / ↑ &nbsp;·&nbsp; GAS &nbsp;&nbsp;&nbsp; S / ↓ &nbsp;·&nbsp; BRAKE<br>
       A / ← &nbsp;·&nbsp; LEFT &nbsp;&nbsp;&nbsp; D / → &nbsp;·&nbsp; RIGHT<br>
-      C &nbsp;·&nbsp; CAMERA &nbsp;&nbsp;&nbsp; SPACE &nbsp;·&nbsp; IGNITION<br>
-      R &nbsp;·&nbsp; REPAIR / FLIP UPRIGHT
+      C &nbsp;·&nbsp; CAMERA<br>
+      E &nbsp;·&nbsp; START / STOP ENGINE &nbsp;&nbsp;&nbsp; R &nbsp;·&nbsp; FLIP UPRIGHT
     </div>
   </div>
 
@@ -437,6 +432,26 @@ const PBR_ASPHALT  = loadPBR(TEX.asphalt,  8, 8);
 const PBR_CONCRETE = loadPBR(TEX.concrete, 4, 4);
 const PBR_WALL     = loadPBR(TEX.wall,     2, 4);
 
+// Procedural road texture (asphalt + dashed center line + solid edge lines) —
+// used for the open ground beyond the dropped city model so it reads as a road,
+// not blank pavement.
+function makeRoadTex() {
+  const cv = document.createElement('canvas'); cv.width = 128; cv.height = 128;
+  const ctx = cv.getContext('2d');
+  ctx.fillStyle = '#1c1c1c'; ctx.fillRect(0, 0, 128, 128);
+  ctx.fillStyle = 'rgba(255,255,255,0.05)';
+  for (let i = 0; i < 60; i++) ctx.fillRect(Math.random() * 128, Math.random() * 128, 1.5, 1.5);
+  ctx.fillStyle = '#e8e0c8';
+  ctx.fillRect(60, 8, 8, 48);           // dashed center line segment
+  ctx.fillRect(4, 0, 4, 128);           // left edge line
+  ctx.fillRect(120, 0, 4, 128);         // right edge line
+  const tex = new THREE.CanvasTexture(cv);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(20, 20);
+  return tex;
+}
+const ROAD_TEX = makeRoadTex();
+
 // ════════════════════════════════════════════════════════════════
 // ⑤ CITY CONSTANTS
 // ════════════════════════════════════════════════════════════════
@@ -487,6 +502,39 @@ function buildCar(color) {
     add(new THREE.BoxGeometry(0.3, 0.14, 0.06), brakesMat, lx, 0.56,  2.04);
   });
   return g;
+}
+
+// Simple low-poly tree — trunk + leaf cone, scattered on the open ground
+// beyond the dropped city model's footprint so the outskirts don't feel empty.
+const treeTrunkMat = sm(0x5a3d24, { roughness: 0.9 });
+const treeLeafMat  = sm(0x2f6b32, { roughness: 0.85 });
+function buildTree() {
+  const g = new THREE.Group();
+  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.32, 2.2, 6), treeTrunkMat);
+  trunk.position.y = 1.1; trunk.castShadow = true;
+  const leaves = new THREE.Mesh(new THREE.ConeGeometry(1.6, 3.4, 7), treeLeafMat);
+  leaves.position.y = 3.5; leaves.castShadow = true;
+  g.add(trunk, leaves);
+  return g;
+}
+function scatterTrees(count) {
+  const bounds = window._mapBounds || { x: 0, z: 0 };
+  const margin = 16;
+  const group = new THREE.Group();
+  for (let i = 0; i < count; i++) {
+    let x, z, tries = 0;
+    do {
+      x = (Math.random() * 2 - 1) * (CITY - 10);
+      z = (Math.random() * 2 - 1) * (CITY - 10);
+      tries++;
+    } while (Math.abs(x) < bounds.x + margin && Math.abs(z) < bounds.z + margin && tries < 8);
+    const tree = buildTree();
+    tree.position.set(x, 0, z);
+    tree.rotation.y = Math.random() * Math.PI * 2;
+    tree.scale.setScalar(0.8 + Math.random() * 0.6);
+    group.add(tree);
+  }
+  scene.add(group);
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -594,11 +642,9 @@ async function buildCity() {
     setProgress(20, 'Paving roads...');
     const ground = new THREE.Mesh(
       new THREE.PlaneGeometry(CITY * 2, CITY * 2),
-      sm(0x1c1c1c, {
-        roughness:    0.88, metalness: 0.08,
-        map:          PBR_ASPHALT.map,          // 'textures/asphalt/color.jpg'
-        normalMap:    PBR_ASPHALT.normalMap,    // 'textures/asphalt/normal.jpg'
-        roughnessMap: PBR_ASPHALT.roughnessMap, // 'textures/asphalt/roughness.jpg'
+      sm(0xffffff, {
+        roughness: 0.88, metalness: 0.08,
+        map:       ROAD_TEX,
       })
     );
     ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
@@ -737,6 +783,9 @@ async function buildCity() {
     window._carLift  = 0;      // car sits at y = 0
     window._mapBounds = { x: 595, z: 595 }; // flat ground is 1200 wide → ±600
   }
+
+  setProgress(95, 'Planting trees…');
+  scatterTrees(90);
 
   buildAtmosphere(window._playerCar);
 
@@ -879,10 +928,11 @@ function updateAtmosphere(dt) {
 const SOUND_URLS = {
   engine: 'sounds/557214__lhermanns__enginewarmup_1-loop.wav', // looping engine — pitch follows speed
   crash:  'sounds/847983__freekit__a-rattling-bus.wav',        // metal rattle (clipped short on impact)
-  start:  null,   // drop an engine-start file here later
+  start:  'sounds/328122__maynardkenmuir__car-engine-start.wav', // ignition sound on engine start
   stall:  null,   // drop an engine-stall file here later
 };
 let audioCtx = null, masterGain = null, engineGain = null, engineSrc = null;
+let _engineHoldUntil = 0;   // audioCtx time before which the engine loop stays silent (lets the ignition sample finish first)
 const _buffers = {};                  // decoded AudioBuffers, keyed like SOUND_URLS
 let _soundsRequested = false;
 
@@ -925,7 +975,7 @@ function updateEngineSound() {
   if (!audioCtx || !engineGain) return;
   const now = audioCtx.currentTime;
   const spd = Math.abs(carSpeed);
-  const target = (gameRunning && engineOn) ? 0.30 + spd * 0.5 : 0.0;
+  const target = (gameRunning && engineOn && now >= _engineHoldUntil) ? 0.30 + spd * 0.5 : 0.0;
   engineGain.gain.setTargetAtTime(target, now, 0.08);
   if (engineSrc) engineSrc.playbackRate.setTargetAtTime(0.7 + spd * 1.8, now, 0.1); // RPM
 }
@@ -1094,31 +1144,41 @@ function crashImpact(worldPoint, sev) {
 // (free-spin roll, gravity-popped), which must be righted before restarting.
 function startEngine() {
   if (!gameRunning || engineOn || flipped) return;
-  engineOn = true; playStartSound(); updateIgnitionUI();
+  engineOn = true; playStartSound();
+  _engineHoldUntil = audioCtx ? audioCtx.currentTime + (_buffers.start ? _buffers.start.duration : 0) : 0;
 }
 function stopEngine() {
-  engineOn = false; updateIgnitionUI();
+  engineOn = false;
 }
 function triggerFlip(sev) {
   if (flipped) return;
   flipped = true; engineOn = false; _flipTimer = 0;
-  _rollVel = (Math.random() < 0.5 ? -1 : 1) * (0.20 + sev * 0.12);   // random barrel-roll dir
+  // random tumble axis mix — sometimes a pure barrel-roll (lands on roof or side),
+  // sometimes an end-over-end pitch, usually a bit of both, like a real crash
+  const dir = Math.random() < 0.5 ? -1 : 1;
+  const mag = 0.20 + sev * 0.12;
+  const mix = Math.random();
+  _rollVel  = dir * mag * mix;
+  _pitchVel = (Math.random() < 0.5 ? -1 : 1) * mag * (1 - mix);
   const pc = window._playerCar;
   if (pc) { pc.position.y += 0.5; carVelY = 0.30 + sev * 0.20; }     // pop up so it tumbles
-  updateIgnitionUI();
+}
+// Drift-induced rollover — same tumble physics as triggerFlip, but roll-dominant
+// (barrel-roll toward the outside of the slide) since it comes from sustained
+// lateral G rather than a head-on impact, and the direction/strength come
+// straight from the actual slide instead of an arbitrary severity number.
+function beginDriftRollover(dirSign, mag) {
+  if (flipped) return;
+  flipped = true; engineOn = false; _flipTimer = 0;
+  const magnitude = 0.20 + Math.min(mag, 1) * 0.24;
+  _rollVel  = dirSign * magnitude;
+  _pitchVel = (Math.random() - 0.5) * magnitude * 0.25;
+  const pc = window._playerCar;
+  if (pc) { pc.position.y += 0.35; carVelY = 0.20 + Math.min(mag, 1) * 0.18; }
 }
 function rightCar() {
   if (!flipped) return;
-  flipped = false; _rollVel = 0; _roll = 0; _pitch = 0; _flipTimer = 0; carSpeed = 0;
-  updateIgnitionUI();                                                // engine stays off → prompt becomes "START ENGINE"
-}
-function updateIgnitionUI() {
-  const b = document.getElementById('ignition-btn');
-  if (!b) return;
-  if (!gameRunning)   { b.style.display = 'none'; return; }
-  if (flipped)        { b.textContent = '↻ FLIP UPRIGHT (R)';    b.style.display = 'block'; }
-  else if (!engineOn) { b.textContent = '🔑 START ENGINE (SPACE)'; b.style.display = 'block'; }
-  else                { b.style.display = 'none'; }
+  flipped = false; _rollVel = 0; _pitchVel = 0; _roll = 0; _pitch = 0; _flipTimer = 0; carSpeed = 0;
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -1129,7 +1189,10 @@ let carVelY = 0, _pitch = 0, _roll = 0, _landImpact = 0;  // vertical physics + 
 const GRAVITY = 0.028;                                    // per-frame² fall accel
 let score = 0;
 let gameRunning = false;
-let engineOn = false, flipped = false, _rollVel = 0, _flipTimer = 0;  // ignition + rollover state
+let engineOn = false, flipped = false, _rollVel = 0, _pitchVel = 0, _flipTimer = 0;  // ignition + rollover state
+let driftVel = 0;       // sideways slip speed (car's right-vector) — builds when cornering past grip
+let _tipMomentum = 0;   // accumulated rollover risk from sustained lateral G — no scripted trigger,
+                         // crossing the threshold below is what actually flips the car
 
 const keys = {};
 // Only swallow the driving keys — leave F5 / F12 / Ctrl-shortcuts to the browser.
@@ -1160,7 +1223,7 @@ function drawMinimap() {
 }
 
 const spdCtx = document.getElementById('spdCanvas').getContext('2d');
-function drawSpeedometer(kmh) {
+function drawSpeedometer(kmh, mode) {
   const W = 160, cx = W/2, cy = W/2, r = 68;
   spdCtx.clearRect(0, 0, W, W);
 
@@ -1198,16 +1261,27 @@ function drawSpeedometer(kmh) {
   spdCtx.fillStyle = '#fff'; spdCtx.fill();
 
   // цифра
-  spdCtx.fillStyle = '#fff'; spdCtx.font = 'bold 22px Segoe UI';
-  spdCtx.textAlign = 'center'; spdCtx.fillText(kmh, cx, cy + 28);
-  spdCtx.font = '10px Segoe UI'; spdCtx.fillStyle = '#aaa';
-  spdCtx.fillText('km/h', cx, cy + 42);
+  if (mode === 'flipped') {
+    spdCtx.fillStyle = '#ff4422'; spdCtx.font = 'bold 13px Segoe UI';
+    spdCtx.textAlign = 'center'; spdCtx.fillText('PRESS', cx, cy + 22);
+    spdCtx.fillText('R', cx, cy + 38);
+  } else if (mode === 'off') {
+    spdCtx.fillStyle = '#ff4422'; spdCtx.font = 'bold 13px Segoe UI';
+    spdCtx.textAlign = 'center'; spdCtx.fillText('ENGINE', cx, cy + 22);
+    spdCtx.fillText('OFF', cx, cy + 38);
+  } else {
+    spdCtx.fillStyle = '#fff'; spdCtx.font = 'bold 22px Segoe UI';
+    spdCtx.textAlign = 'center'; spdCtx.fillText(kmh, cx, cy + 28);
+    spdCtx.font = '10px Segoe UI'; spdCtx.fillStyle = '#aaa';
+    spdCtx.fillText('km/h', cx, cy + 42);
+  }
 }
 
 function updateHUD() {
   const kmh = Math.abs(Math.floor(carSpeed * 140));
   document.getElementById('sc').textContent = score;
-  drawSpeedometer(kmh);
+  const mode = flipped ? 'flipped' : (!engineOn ? 'off' : 'on');
+  drawSpeedometer(kmh, mode);
 }
 
 function showMenuUI(showStart) {
@@ -1281,7 +1355,8 @@ function startGame() {
   initAudio();
   score = 0; carSpeed = 0; _crashCooldown = 0;
   carVelY = 0; _pitch = 0; _roll = 0; _landImpact = 0;
-  engineOn = false; flipped = false; _rollVel = 0; _flipTimer = 0; _bodyShake = 0;
+  engineOn = false; flipped = false; _rollVel = 0; _pitchVel = 0; _flipTimer = 0; _bodyShake = 0;
+  driftVel = 0; _tipMomentum = 0;
   const pc0 = window._playerCar;
   _curSurf = sampleGround(pc0.position.x, pc0.position.z, window._carLift || 0);
   pc0.position.y = _curSurf + (window._carLift || 0);
@@ -1299,7 +1374,8 @@ function restartGame() {
   initAudio();
   score = 0; carSpeed = 0; carAngle = 0; _crashCooldown = 0;
   carVelY = 0; _pitch = 0; _roll = 0; _landImpact = 0;
-  engineOn = false; flipped = false; _rollVel = 0; _flipTimer = 0; _bodyShake = 0;
+  engineOn = false; flipped = false; _rollVel = 0; _pitchVel = 0; _flipTimer = 0; _bodyShake = 0;
+  driftVel = 0; _tipMomentum = 0;
   const pc = window._playerCar;
   _curSurf = sampleGround(0, 0, window._carLift || 0);
   pc.position.set(0, _curSurf + (window._carLift || 0), 0); pc.rotation.set(0, 0, 0); pc.visible = true;
@@ -1358,14 +1434,15 @@ function cycleCamera() { setCamera((camView + 1) % 5); }
 
 document.addEventListener('keydown', e => {
   if ((e.key === 'c' || e.key === 'C') && !e.ctrlKey) cycleCamera();
-  // R: right the car when flipped, otherwise repair dents
-  if ((e.key === 'r' || e.key === 'R') && !e.ctrlKey && gameRunning) {
-    if (flipped) rightCar(); else resetCarDamage();
-  }
-  // Space / I: ignition — right the car first if flipped, else start the engine
-  if ((e.key === ' ' || e.key === 'i' || e.key === 'I') && gameRunning) {
+  // R: right the car when flipped
+  if ((e.key === 'r' || e.key === 'R') && !e.ctrlKey && gameRunning && flipped) {
     e.preventDefault();
-    if (flipped) rightCar(); else if (!engineOn) startEngine();
+    rightCar();
+  }
+  // E: toggle engine start/stop
+  if ((e.key === 'e' || e.key === 'E') && !e.ctrlKey && gameRunning && !flipped) {
+    e.preventDefault();
+    if (engineOn) stopEngine(); else startEngine();
   }
 });
 
@@ -1460,9 +1537,11 @@ function animate(ts) {
   const left  = keys['ArrowLeft']  || keys['a'] || keys['A'];
   const right = keys['ArrowRight'] || keys['d'] || keys['D'];
 
-  // Throttle only has power when the engine is running and the car isn't flipped;
+  // Throttle only has power when the engine is running, the car isn't flipped,
+  // and the ignition sample has finished playing (audio + gameplay stay in sync);
   // otherwise it just coasts to a stop (same friction as the no-input case).
-  if (engineOn && !flipped) {
+  const ignitionDone = !audioCtx || audioCtx.currentTime >= _engineHoldUntil;
+  if (engineOn && !flipped && ignitionDone) {
     if (up)        carSpeed = Math.min(carSpeed + 0.003 * dt,  0.7);
     else if (down) carSpeed = Math.max(carSpeed - 0.003 * dt, -0.15);
     else           carSpeed *= Math.pow(0.97, dt);
@@ -1473,11 +1552,33 @@ function animate(ts) {
   const spd = Math.abs(carSpeed);
   // Steering works while rolling OR while the player feeds throttle/reverse,
   // so you can always reorient — even when nudged up against a wall.
+  let angVel = 0;
   if (spd > 0.004 || up || down) {
     const authority = Math.max(Math.min(spd / 0.22, 1.0), (up || down) ? 0.4 : 0);
-    const turnRate  = 0.020 * authority * dt * (carSpeed >= 0 ? 1 : -1);
-    if (left)  carAngle += turnRate;
-    if (right) carAngle -= turnRate;
+    angVel = 0.020 * authority * (carSpeed >= 0 ? 1 : -1) * ((left ? 1 : 0) - (right ? 1 : 0));
+    carAngle += angVel * dt;
+  }
+
+  // ── DRIFT & ROLLOVER — no scripted trigger. Cornering hard at speed builds
+  // real lateral G; past the tyres' grip limit the car starts sliding sideways
+  // (drift), and if that slide is held long enough the accumulated tip
+  // momentum flips the car onto its side, exactly like a real rollover. ──
+  const rgx = -Math.cos(carAngle), rgz = Math.sin(carAngle);      // car's right vector
+  const lateralG = spd * Math.abs(angVel);
+  const GRIP_LIMIT = 0.0065;
+  if (lateralG > GRIP_LIMIT && spd > 0.10) {
+    driftVel += Math.sign(angVel) * (lateralG - GRIP_LIMIT) * 55 * dt;
+  }
+  driftVel *= Math.pow(0.90, dt);                                 // tyres clawing traction back
+  if (!flipped && spd > 0.32 && Math.abs(driftVel) > 0.10) {
+    _tipMomentum += (Math.abs(driftVel) - 0.10) * dt;
+  } else {
+    _tipMomentum *= Math.pow(0.85, dt);
+  }
+  const TIP_THRESHOLD = 5.5;
+  if (_tipMomentum > TIP_THRESHOLD) {
+    beginDriftRollover(Math.sign(driftVel) || 1, Math.min(1, _tipMomentum / (TIP_THRESHOLD * 2)));
+    _tipMomentum = 0; driftVel = 0;
   }
 
   // ── Movement with wall-SLIDING collision (never wedges) ──────────
@@ -1487,8 +1588,8 @@ function animate(ts) {
   // so the car slides along it; a true head-on hit dents the car and bounces
   // it back a touch, so it can never glue itself to anything.
   const fwdx = -Math.sin(carAngle), fwdz = -Math.cos(carAngle);
-  const dx = fwdx * carSpeed * dt;
-  const dz = fwdz * carSpeed * dt;
+  const dx = fwdx * carSpeed * dt + rgx * driftVel * dt;
+  const dz = fwdz * carSpeed * dt + rgz * driftVel * dt;
   const lead = (carSpeed >= 0 ? 1 : -1) * 4.5;     // leading-edge offset
 
   const wallAt = (x, z) => {
@@ -1586,18 +1687,33 @@ function animate(ts) {
     _pitch += ((airborne ? 0 : pitchTarget) - _pitch) * Math.min(0.08 * dt, 1);
     _roll  += ((airborne ? 0 : rollTarget ) - _roll ) * Math.min(0.08 * dt, 1);
   } else {
-    // Rolled over — the roll spins under its own damped momentum (terrain easing
-    // is skipped so the two don't fight). It settles on its roof past the tipping
-    // point, or self-rights if the impulse was weak. A hard timeout guarantees the
-    // animation always terminates so a flip can never hang the car.
+    // Rolled over — tumbles freely on both roll (barrel-roll) and pitch (end-over-end)
+    // axes under its own damped momentum (terrain easing is skipped so the two don't
+    // fight), so the car keeps turning and stays visible mid-crash like a real rollover.
+    // It settles wherever the tumble runs out — upright, on its roof, or resting on a
+    // side. A hard timeout guarantees the animation always terminates.
     _flipTimer += dt;
-    _roll += _rollVel * dt;
-    _rollVel *= Math.pow(0.96, dt);
-    _rollVel = Math.max(-0.5, Math.min(0.5, _rollVel));
+    _roll  += _rollVel  * dt;
+    _pitch += _pitchVel * dt;
+    _rollVel  *= Math.pow(0.96, dt);
+    _pitchVel *= Math.pow(0.96, dt);
+    _rollVel  = Math.max(-0.5, Math.min(0.5, _rollVel));
+    _pitchVel = Math.max(-0.5, Math.min(0.5, _pitchVel));
     const onGround = pc.position.y <= restY + 0.12;
-    if ((onGround && Math.abs(_rollVel) < 0.01) || _flipTimer > 180) {
-      _roll = Math.abs(_roll) > Math.PI * 0.5 ? Math.sign(_roll || 1) * Math.PI : 0;
-      if (Math.abs(_roll) < 0.01) { flipped = false; _rollVel = 0; updateIgnitionUI(); }
+    const settled = Math.abs(_rollVel) < 0.01 && Math.abs(_pitchVel) < 0.01;
+    if ((onGround && settled) || _flipTimer > 180) {
+      // snap to the nearest stable rest pose on whichever axis tumbled the most —
+      // roll can settle upright / on a side / on the roof; pitch only upright / roof
+      if (Math.abs(_roll) >= Math.abs(_pitch)) {
+        const step = Math.PI / 2;
+        _roll = Math.round(_roll / step) * step;
+        _pitch = 0;
+      } else {
+        _pitch = Math.abs(_pitch) > Math.PI / 2 ? Math.sign(_pitch || 1) * Math.PI : 0;
+        _roll = 0;
+      }
+      _rollVel = 0; _pitchVel = 0;
+      if (Math.abs(_roll) < 0.01 && Math.abs(_pitch) < 0.01) flipped = false;
     }
   }
   _landImpact *= Math.pow(0.85, dt);
