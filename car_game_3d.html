@@ -104,7 +104,16 @@
     }
     .q-btn:hover { color:rgba(255,255,255,0.7); border-color:rgba(255,255,255,0.3); }
     .q-btn.q-active { color:#f0d080; border-color:rgba(240,208,128,0.6); background:rgba(240,208,128,0.08); }
-    #q-desc { font-size:11px; color:rgba(255,255,255,0.25); margin-bottom:40px; }
+    #q-desc { font-size:11px; color:rgba(255,255,255,0.25); margin-bottom:24px; }
+    #m-desc { font-size:11px; color:rgba(255,255,255,0.25); margin-bottom:34px; }
+    #car-desc { font-size:11px; color:rgba(255,255,255,0.25); margin-bottom:24px; }
+    #wanted-hud, #race-hud {
+      position:absolute; top:70px; left:50%; transform:translateX(-50%); display:none;
+      color:#fff; background:rgba(0,0,0,0.45); border-radius:20px; pointer-events:none;
+      backdrop-filter:blur(6px); border:1px solid rgba(255,255,255,0.15);
+    }
+    #wanted-hud { font-size:24px; letter-spacing:4px; padding:6px 22px; color:#f0d080; }
+    #race-hud { font-size:14px; font-weight:700; letter-spacing:2px; padding:8px 24px; color:#f0d080; }
     .start-btn {
       padding:16px 64px; color:#000; border:none; border-radius:6px;
       font-size:14px; font-weight:800; cursor:pointer; letter-spacing:3px;
@@ -169,6 +178,8 @@
 <div id="hud">
   Score: <span id="sc">0</span>
 </div>
+<div id="wanted-hud"><span id="wanted-stars">☆☆☆☆☆</span></div>
+<div id="race-hud"><span id="race-info">LAP 1/2</span></div>
 <div id="minimap"><canvas id="mmCanvas" width="140" height="140"></canvas></div>
 <div id="controls"></div>
 <div id="speedometer"><canvas id="spdCanvas" width="160" height="160"></canvas></div>
@@ -193,6 +204,13 @@
     <div class="subtitle">FREE RIDE • OPEN WORLD</div>
     <div class="accent"></div>
 
+    <div class="q-label">CHOOSE YOUR CAR</div>
+    <div class="q-row">
+      <div class="q-btn q-active" onclick="setCarChoice('rusty')" id="car-rusty">RUSTY WAGON</div>
+      <div class="q-btn" onclick="setCarChoice('bmw')" id="car-bmw">BMW M4 CSL</div>
+    </div>
+    <div id="car-desc">The original beater — light and flickable.</div>
+
     <div class="q-label">GRAPHICS QUALITY</div>
     <div class="q-row">
       <div class="q-btn q-active" onclick="setQuality('low')" id="q-low">LOW</div>
@@ -200,6 +218,14 @@
       <div class="q-btn" onclick="setQuality('high')" id="q-high">HIGH</div>
     </div>
     <div id="q-desc">Procedural sunset — fastest</div>
+
+    <div class="q-label">GAME MODE</div>
+    <div class="q-row">
+      <div class="q-btn q-active" onclick="setMode('free')" id="m-free">FREE RIDE</div>
+      <div class="q-btn" onclick="setMode('cop')" id="m-cop">COP CHASE</div>
+      <div class="q-btn" onclick="setMode('race')" id="m-race">RACE</div>
+    </div>
+    <div id="m-desc">Drive free, no objectives.</div>
 
     <button class="start-btn" onclick="startGame()">START ENGINE</button>
 
@@ -258,8 +284,22 @@
 //    Swap any null / URL below with your own files.
 // ════════════════════════════════════════════════════════════════
 
-// Player car .glb model — loaded from the same folder as this HTML file.
-const CAR_MODEL_URL = 'old_rusty_car.glb';
+// Player car .glb models — loaded from the same folder as this HTML file.
+// Chosen on the start menu before pressing START ENGINE.
+const CAR_OPTIONS = {
+  rusty: { url: 'old_rusty_car.glb', label: 'RUSTY WAGON', desc: 'The original beater — light and flickable.' },
+  bmw:   { url: 'bmw_m4csl.glb',     label: 'BMW M4 CSL',  desc: 'Sharper, heavier, a lot more chrome.' },
+};
+let selectedCar = 'rusty';
+function setCarChoice(key) {
+  selectedCar = key;
+  Object.keys(CAR_OPTIONS).forEach(id => {
+    const el = document.getElementById('car-' + id);
+    if (el) el.classList.toggle('q-active', id === key);
+  });
+  const d = document.getElementById('car-desc');
+  if (d) d.textContent = CAR_OPTIONS[key].desc;
+}
 
 // HDR environment map (.hdr) for Image-Based Lighting.
 // null = procedural sky + manual lights (always works, no download needed).
@@ -294,6 +334,23 @@ function setQuality(q) {
   if (descEl) descEl.textContent = QUALITY[q].label;
   const sdescEl = document.getElementById('sq-desc');
   if (sdescEl) sdescEl.textContent = labelShort;
+}
+
+// ── GAME MODE SELECTOR ──────────────────────────────────────────
+let gameMode = 'free'; // 'free' | 'cop' | 'race'
+const MODE_DESC = {
+  free: 'Drive free, no objectives.',
+  cop:  "Run from the police — don't hit pedestrians!",
+  race: 'Beat the rival car across 2 laps.',
+};
+function setMode(m) {
+  gameMode = m;
+  ['free', 'cop', 'race'].forEach(id => {
+    const el = document.getElementById('m-' + id);
+    if (el) el.classList.toggle('q-active', id === m);
+  });
+  const d = document.getElementById('m-desc');
+  if (d) d.textContent = MODE_DESC[m];
 }
 
 function toggleSettings() {
@@ -504,6 +561,32 @@ function buildCar(color) {
   return g;
 }
 
+// Police livery: same procedural car body, dark paint + a red/blue light bar.
+function buildPoliceCar() {
+  const car = buildCar(0x0a1a3a);
+  const bar = new THREE.Group();
+  const b1 = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.14, 0.3), bm(0xff2020));
+  const b2 = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.14, 0.3), bm(0x2050ff));
+  b1.position.set(-0.28, 0, 0); b2.position.set(0.28, 0, 0);
+  bar.add(b1, b2); bar.position.set(0, 1.4, 0.1);
+  car.add(bar);
+  car.userData._lightA = b1; car.userData._lightB = b2;
+  return car;
+}
+
+// Low-poly pedestrian — cylinder body + sphere head, walked around in Cop mode.
+function buildPedestrian() {
+  const g = new THREE.Group();
+  const bodyMat = sm(Math.random() > 0.5 ? 0x3060a0 : 0xa03030, { roughness: 0.85 });
+  const headMat = sm(0xe0b090, { roughness: 0.7 });
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.3, 1.1, 8), bodyMat);
+  body.position.y = 0.75; body.castShadow = true;
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.24, 8, 8), headMat);
+  head.position.y = 1.5; head.castShadow = true;
+  g.add(body, head);
+  return g;
+}
+
 // Simple low-poly tree — trunk + leaf cone, scattered on the open ground
 // beyond the dropped city model's footprint so the outskirts don't feel empty.
 const treeTrunkMat = sm(0x5a3d24, { roughness: 0.9 });
@@ -544,6 +627,93 @@ const barEl = document.getElementById('bar');
 const lblEl = document.getElementById('bar-lbl');
 function setProgress(pct, msg) { barEl.style.width = pct + '%'; lblEl.textContent = msg; }
 function defer(fn) { return new Promise(r => setTimeout(() => { fn(); r(); }, 0)); }
+
+// Loads (or swaps in) the player car model, auto-scaling it to a consistent
+// footprint and replacing whatever car is currently in the scene. Used both
+// at boot (default car) and from the start menu when the player picks a
+// different one. Falls back to the procedural car on a load error.
+function loadPlayerCar(url, onProgress) {
+  return new Promise(resolve => {
+    new THREE.GLTFLoader().load(
+      url,
+      gltf => {
+        if (window._playerCar) scene.remove(window._playerCar);
+        const rawModel = gltf.scene;
+
+        // Some exported models run their length along X instead of Z (this
+        // game's forward axis when carAngle=0) — spotted from the raw
+        // bounding box before any scaling. Rotate the raw model inside a
+        // wrapper group so the group's yaw (driven every frame by animate())
+        // still means what the physics expects; the raw model itself is
+        // never touched again after this.
+        const rawBox = new THREE.Box3().setFromObject(rawModel);
+        const rawSize = new THREE.Vector3();
+        rawBox.getSize(rawSize);
+        if (rawSize.x > rawSize.z) rawModel.rotation.y = -Math.PI / 2;
+
+        // Some exports don't center their root at the origin — zero it out so
+        // the wrapper group below is the sole source of world position.
+        rawModel.position.set(0, 0, 0);
+
+        const model = new THREE.Group();
+        model.add(rawModel);
+
+        // Auto-scale: fit the model into a ~12-unit-long car footprint
+        const box = new THREE.Box3().setFromObject(model);
+        const size = new THREE.Vector3();
+        box.getSize(size);
+        const maxDim = Math.max(size.x, size.y, size.z);
+        const targetSize = 12.0; // desired max dimension in world units
+        const autoScale = maxDim > 0 ? targetSize / maxDim : 1.0;
+        model.scale.setScalar(autoScale);
+
+        // Recompute box after scaling, then lift so bottom sits on y=0.
+        const box2 = new THREE.Box3().setFromObject(model);
+        window._carLift = -box2.min.y;          // sits the car's wheels on whatever surface is below it
+
+        // A building sits close to the east side of spawn — nudge wide cars
+        // west so their right edge clears it instead of poking into the wall.
+        // Capped so it never relocates a car far from the usual spawn point.
+        const SAFE_RIGHT_X = 0.8, MAX_SPAWN_SHIFT = 2.5;
+        const spawnX = Math.max(-MAX_SPAWN_SHIFT, Math.min(0, SAFE_RIGHT_X - box2.max.x));
+        window._carSpawnX = spawnX;
+        model.position.set(spawnX, window._carLift, 0);  // spawn near the center of the city
+
+        // Spawn orientation only. The live facing is set every frame in
+        // updateScene() via pc.rotation.y — flip the car there, not here.
+        model.rotation.y = 0;
+
+        model.traverse(child => {
+          if (!child.isMesh) return;
+          child.castShadow = true;
+          child.receiveShadow = true;
+          if (child.material) {
+            // make sure materials are visible
+            child.material.side = THREE.FrontSide;
+            if (child.material.isMeshStandardMaterial || child.material.isMeshPhysicalMaterial)
+              child.material.envMapIntensity = 1.2;
+          }
+        });
+        scene.add(model);
+        window._playerCar = model;
+        window._loadedCarUrl = url;
+        collectCarMeshes();
+        resolve(true);
+      },
+      xhr => { if (onProgress) onProgress(xhr.total ? xhr.loaded / xhr.total : 0); },
+      err => {
+        console.warn('GLTF failed, using procedural car:', err);
+        if (window._playerCar) scene.remove(window._playerCar);
+        const car = buildCar(0x1a3a6a);
+        scene.add(car);
+        window._playerCar = car;
+        window._loadedCarUrl = url;
+        collectCarMeshes();
+        resolve(false);
+      }
+    );
+  });
+}
 
 // ════════════════════════════════════════════════════════════════
 // ⑧ ASYNC CITY BUILDER
@@ -656,63 +826,10 @@ async function buildCity() {
   // ── (procedural buildings, trees & streetlights removed) ─────────
 
   // ── PLAYER CAR — GLTF model with procedural fallback ─────────────
-  await new Promise(resolve => {
-    setProgress(92, 'Loading car model...');
-    new THREE.GLTFLoader().load(
-      CAR_MODEL_URL,
-      gltf => {
-        const model = gltf.scene;
-
-        // Auto-scale: fit the model into a ~4-unit-long car footprint
-        const box = new THREE.Box3().setFromObject(model);
-        const size = new THREE.Vector3();
-        box.getSize(size);
-        const maxDim = Math.max(size.x, size.y, size.z);
-        const targetSize = 12.0; // desired max dimension in world units
-        const autoScale = maxDim > 0 ? targetSize / maxDim : 1.0;
-        model.scale.setScalar(autoScale);
-
-        // Recompute box after scaling, then lift so bottom sits on y=0.
-        // Spawn on open ground near the edge of the map, facing the city.
-        const box2 = new THREE.Box3().setFromObject(model);
-        window._carLift = -box2.min.y;          // sits the car's wheels on whatever surface is below it
-        model.position.set(0, window._carLift, 0);  // spawn in center of city
-
-        // Spawn orientation only. The live facing is set every frame in
-        // updateScene() via pc.rotation.y — flip the car there, not here.
-        model.rotation.y = 0;
-
-        model.traverse(child => {
-          if (!child.isMesh) return;
-          child.castShadow = true;
-          child.receiveShadow = true;
-          if (child.material) {
-            // make sure materials are visible
-            child.material.side = THREE.FrontSide;
-            if (child.material.isMeshStandardMaterial || child.material.isMeshPhysicalMaterial)
-              child.material.envMapIntensity = 1.2;
-          }
-        });
-        scene.add(model);
-        window._playerCar = model;
-        collectCarMeshes();
-        setProgress(98, 'Almost ready...');
-        resolve();
-      },
-      xhr => {
-        const pct = xhr.total ? xhr.loaded / xhr.total : 0;
-        setProgress(92 + Math.round(pct * 6), 'Downloading car model...');
-      },
-      err => {
-        console.warn('GLTF failed, using procedural car:', err);
-        const car = buildCar(0x1a3a6a);
-        scene.add(car);
-        window._playerCar = car;
-        collectCarMeshes();
-        resolve();
-      }
-    );
-  });
+  setProgress(92, 'Loading car model...');
+  await loadPlayerCar(CAR_OPTIONS[selectedCar].url,
+    pct => setProgress(92 + Math.round(pct * 6), 'Downloading car model...'));
+  setProgress(98, 'Almost ready...');
 
   // ── WORLD MAP ─────────────────────────────────────────────────────
   // Try to load the GLB world; fall back to a flat procedural ground
@@ -933,6 +1050,7 @@ const SOUND_URLS = {
 };
 let audioCtx = null, masterGain = null, engineGain = null, engineSrc = null;
 let _engineHoldUntil = 0;   // audioCtx time before which the engine loop stays silent (lets the ignition sample finish first)
+let _throttleReadyAt = 0;   // performance.now() timestamp before which throttle stays locked (engine warm-up)
 const _buffers = {};                  // decoded AudioBuffers, keyed like SOUND_URLS
 let _soundsRequested = false;
 
@@ -1146,6 +1264,7 @@ function startEngine() {
   if (!gameRunning || engineOn || flipped) return;
   engineOn = true; playStartSound();
   _engineHoldUntil = audioCtx ? audioCtx.currentTime + (_buffers.start ? _buffers.start.duration : 0) : 0;
+  _throttleReadyAt = performance.now() + 2500;   // 2.5s warm-up before the car can move
 }
 function stopEngine() {
   engineOn = false;
@@ -1163,19 +1282,6 @@ function triggerFlip(sev) {
   const pc = window._playerCar;
   if (pc) { pc.position.y += 0.5; carVelY = 0.30 + sev * 0.20; }     // pop up so it tumbles
 }
-// Drift-induced rollover — same tumble physics as triggerFlip, but roll-dominant
-// (barrel-roll toward the outside of the slide) since it comes from sustained
-// lateral G rather than a head-on impact, and the direction/strength come
-// straight from the actual slide instead of an arbitrary severity number.
-function beginDriftRollover(dirSign, mag) {
-  if (flipped) return;
-  flipped = true; engineOn = false; _flipTimer = 0;
-  const magnitude = 0.20 + Math.min(mag, 1) * 0.24;
-  _rollVel  = dirSign * magnitude;
-  _pitchVel = (Math.random() - 0.5) * magnitude * 0.25;
-  const pc = window._playerCar;
-  if (pc) { pc.position.y += 0.35; carVelY = 0.20 + Math.min(mag, 1) * 0.18; }
-}
 function rightCar() {
   if (!flipped) return;
   flipped = false; _rollVel = 0; _pitchVel = 0; _roll = 0; _pitch = 0; _flipTimer = 0; carSpeed = 0;
@@ -1190,9 +1296,6 @@ const GRAVITY = 0.028;                                    // per-frame² fall ac
 let score = 0;
 let gameRunning = false;
 let engineOn = false, flipped = false, _rollVel = 0, _pitchVel = 0, _flipTimer = 0;  // ignition + rollover state
-let driftVel = 0;       // sideways slip speed (car's right-vector) — builds when cornering past grip
-let _tipMomentum = 0;   // accumulated rollover risk from sustained lateral G — no scripted trigger,
-                         // crossing the threshold below is what actually flips the car
 
 const keys = {};
 // Only swallow the driving keys — leave F5 / F12 / Ctrl-shortcuts to the browser.
@@ -1292,6 +1395,8 @@ function showMenuUI(showStart) {
   document.getElementById('startPanel').style.display = showStart ? 'flex' : 'none';
   document.getElementById('goPanel').style.display    = showStart ? 'none' : 'flex';
   document.getElementById('settings-btn').style.display = 'none';
+  document.getElementById('wanted-hud').style.display = 'none';
+  document.getElementById('race-hud').style.display   = 'none';
   startBgAnimation();
 }
 
@@ -1351,16 +1456,25 @@ function stopBgAnimation() {
   if (_bgAnimId) { cancelAnimationFrame(_bgAnimId); _bgAnimId = null; }
 }
 
-function startGame() {
+async function startGame() {
   initAudio();
+  const wantedCarUrl = CAR_OPTIONS[selectedCar].url;
+  if (window._loadedCarUrl !== wantedCarUrl) {
+    const btn = document.querySelector('.start-btn');
+    btn.textContent = 'LOADING CAR...';
+    btn.style.pointerEvents = 'none';
+    await loadPlayerCar(wantedCarUrl);
+    btn.textContent = 'START ENGINE';
+    btn.style.pointerEvents = '';
+  }
   score = 0; carSpeed = 0; _crashCooldown = 0;
   carVelY = 0; _pitch = 0; _roll = 0; _landImpact = 0;
   engineOn = false; flipped = false; _rollVel = 0; _pitchVel = 0; _flipTimer = 0; _bodyShake = 0;
-  driftVel = 0; _tipMomentum = 0;
   const pc0 = window._playerCar;
   _curSurf = sampleGround(pc0.position.x, pc0.position.z, window._carLift || 0);
   pc0.position.y = _curSurf + (window._carLift || 0);
   resetCarDamage();
+  setupGameMode();
   hideMenuUI();
   document.getElementById('hud').style.display         = 'flex';
   document.getElementById('minimap').style.display     = 'block';
@@ -1375,11 +1489,12 @@ function restartGame() {
   score = 0; carSpeed = 0; carAngle = 0; _crashCooldown = 0;
   carVelY = 0; _pitch = 0; _roll = 0; _landImpact = 0;
   engineOn = false; flipped = false; _rollVel = 0; _pitchVel = 0; _flipTimer = 0; _bodyShake = 0;
-  driftVel = 0; _tipMomentum = 0;
   const pc = window._playerCar;
-  _curSurf = sampleGround(0, 0, window._carLift || 0);
-  pc.position.set(0, _curSurf + (window._carLift || 0), 0); pc.rotation.set(0, 0, 0); pc.visible = true;
+  const spawnX = window._carSpawnX || 0;
+  _curSurf = sampleGround(spawnX, 0, window._carLift || 0);
+  pc.position.set(spawnX, _curSurf + (window._carLift || 0), 0); pc.rotation.set(0, 0, 0); pc.visible = true;
   resetCarDamage();
+  setupGameMode();
   hideMenuUI();
   document.getElementById('hud').style.display         = 'flex';
   document.getElementById('minimap').style.display     = 'block';
@@ -1387,6 +1502,267 @@ function restartGame() {
   document.getElementById('cam-switcher').style.display = 'flex';
   updateHUD(); gameRunning = true;
   startEngine();
+}
+
+// ════════════════════════════════════════════════════════════════
+// ⑨b GAME MODES — Cop Chase (wanted stars + pursuing police + pedestrians)
+//     and Race (checkpoint loop vs. one AI rival car)
+// ════════════════════════════════════════════════════════════════
+let _peds = [];
+let _wantedStars = [];   // seconds remaining per active star (max 5)
+let _policeCars = [];
+let _busted = 0;         // grace cooldown (sec) after a police hit
+let _sirenT = 0;
+
+let _raceCheckpoints = [];
+let _raceCPIndex = 0;
+let _raceLaps = 0;
+let _raceFinished = false;
+let _opponent = null;
+const RACE_LAPS_TOTAL = 2;
+
+function randomPointInBounds(marginFactor = 0.85) {
+  const b = window._mapBounds || { x: 200, z: 200 };
+  return {
+    x: (Math.random() * 2 - 1) * b.x * marginFactor,
+    z: (Math.random() * 2 - 1) * b.z * marginFactor,
+  };
+}
+
+// ── Pedestrians ──────────────────────────────────────────────────
+function spawnPedestrians(n) {
+  for (let i = 0; i < n; i++) {
+    const p = randomPointInBounds();
+    const mesh = buildPedestrian();
+    mesh.position.set(p.x, sampleGround(p.x, p.z, 0), p.z);
+    scene.add(mesh);
+    const t = randomPointInBounds();
+    _peds.push({ mesh, tx: t.x, tz: t.z, speed: 0.03 + Math.random() * 0.03 });
+  }
+}
+function clearPedestrians() {
+  for (const p of _peds) scene.remove(p.mesh);
+  _peds = [];
+}
+function updatePedestrians(dt) {
+  const pc = window._playerCar;
+  for (let i = _peds.length - 1; i >= 0; i--) {
+    const p = _peds[i];
+    const dx = p.tx - p.mesh.position.x, dz = p.tz - p.mesh.position.z;
+    if (Math.hypot(dx, dz) < 1.5) {
+      const t = randomPointInBounds();
+      p.tx = t.x; p.tz = t.z;
+    } else {
+      const ang = Math.atan2(dx, dz);
+      p.mesh.position.x += Math.sin(ang) * p.speed * dt;
+      p.mesh.position.z += Math.cos(ang) * p.speed * dt;
+      p.mesh.rotation.y = ang;
+    }
+    p.mesh.position.y = sampleGround(p.mesh.position.x, p.mesh.position.z, p.mesh.position.y);
+    if (pc) {
+      const pdx = pc.position.x - p.mesh.position.x, pdz = pc.position.z - p.mesh.position.z;
+      if (Math.hypot(pdx, pdz) < 2.3 && Math.abs(carSpeed) > 0.05) {
+        spawnCrashFX(p.mesh.position.x, p.mesh.position.y + 0.6, p.mesh.position.z, 0.3);
+        scene.remove(p.mesh);
+        _peds.splice(i, 1);
+        addWantedStar();
+      }
+    }
+  }
+  if (_peds.length < 14) {
+    const p = randomPointInBounds();
+    const mesh = buildPedestrian();
+    mesh.position.set(p.x, sampleGround(p.x, p.z, 0), p.z);
+    scene.add(mesh);
+    const t = randomPointInBounds();
+    _peds.push({ mesh, tx: t.x, tz: t.z, speed: 0.03 + Math.random() * 0.03 });
+  }
+}
+
+// ── Wanted stars + pursuing police ──────────────────────────────
+function addWantedStar() {
+  if (_wantedStars.length >= 5) return;
+  _wantedStars.push(60);
+  updatePoliceForce();
+}
+function updateWantedStars(dt) {
+  const realDt = dt / 60; // dt is frames-at-60fps; convert to seconds
+  let changed = false;
+  for (let i = _wantedStars.length - 1; i >= 0; i--) {
+    _wantedStars[i] -= realDt;
+    if (_wantedStars[i] <= 0) { _wantedStars.splice(i, 1); changed = true; }
+  }
+  if (changed) updatePoliceForce();
+  if (_busted > 0) _busted -= realDt;
+}
+function updateStarsHUD() {
+  const el = document.getElementById('wanted-stars');
+  if (!el) return;
+  let str = '';
+  for (let i = 0; i < 5; i++) str += i < _wantedStars.length ? '⭐' : '☆';
+  el.textContent = str;
+}
+function updatePoliceForce() {
+  const target = gameMode === 'cop' ? _wantedStars.length : 0;
+  while (_policeCars.length < target && _policeCars.length < 5) {
+    const p = randomPointInBounds(0.9);
+    const mesh = buildPoliceCar();
+    mesh.position.set(p.x, sampleGround(p.x, p.z, 0), p.z);
+    scene.add(mesh);
+    _policeCars.push({ mesh, angle: Math.random() * Math.PI * 2, speed: 0 });
+  }
+  while (_policeCars.length > target) {
+    scene.remove(_policeCars.pop().mesh);
+  }
+}
+function clearPolice() {
+  for (const p of _policeCars) scene.remove(p.mesh);
+  _policeCars = [];
+}
+function updatePolice(dt) {
+  const pc = window._playerCar; if (!pc) return;
+  _sirenT += dt * 0.2;
+  const blink = Math.sin(_sirenT) > 0;
+  const stars = _wantedStars.length;
+  const speedCap = 0.30 + stars * 0.06;
+  for (const p of _policeCars) {
+    p.mesh.userData._lightA.material.color.setHex(blink ? 0xff2020 : 0x330000);
+    p.mesh.userData._lightB.material.color.setHex(blink ? 0x330033 : 0x2050ff);
+    const dx = pc.position.x - p.mesh.position.x, dz = pc.position.z - p.mesh.position.z;
+    const dist = Math.hypot(dx, dz);
+    const targetAngle = Math.atan2(dx, dz);
+    let da = targetAngle - p.angle;
+    da = Math.atan2(Math.sin(da), Math.cos(da));
+    p.angle += Math.max(-0.05, Math.min(0.05, da)) * dt;
+    p.speed += ((dist > 6 ? speedCap : speedCap * 0.3) - p.speed) * 0.05 * dt;
+    p.mesh.position.x += Math.sin(p.angle) * p.speed * dt;
+    p.mesh.position.z += Math.cos(p.angle) * p.speed * dt;
+    p.mesh.position.y = sampleGround(p.mesh.position.x, p.mesh.position.z, p.mesh.position.y);
+    p.mesh.rotation.y = p.angle + Math.PI;
+    if (dist < 3.2 && _busted <= 0 && stars > 0) {
+      crashImpact(new THREE.Vector3(pc.position.x, pc.position.y + 1, pc.position.z), 0.5);
+      _wantedStars = [];
+      updatePoliceForce();
+      _busted = 3;
+    }
+  }
+}
+
+// ── Race: checkpoint loop + one AI rival car ────────────────────
+function buildCheckpointMarker(active) {
+  const ring = new THREE.Mesh(
+    new THREE.TorusGeometry(4, 0.35, 8, 24),
+    bm(active ? 0xf0d080 : 0x445566)
+  );
+  ring.rotation.x = Math.PI / 2;
+  return ring;
+}
+function setupRace() {
+  const b = window._mapBounds || { x: 200, z: 200 };
+  const n = 6, r = Math.min(b.x, b.z) * 0.65;
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * Math.PI * 2;
+    const x = Math.cos(a) * r, z = Math.sin(a) * r;
+    const mesh = buildCheckpointMarker(i === 0);
+    mesh.position.set(x, sampleGround(x, z, 0) + 1.2, z);
+    scene.add(mesh);
+    _raceCheckpoints.push({ x, z, mesh });
+  }
+  _raceCPIndex = 0; _raceLaps = 0; _raceFinished = false;
+  const start = _raceCheckpoints[0];
+  const oc = buildCar(0xc02020);
+  oc.position.set(start.x + 6, sampleGround(start.x + 6, start.z, 0), start.z);
+  scene.add(oc);
+  _opponent = { mesh: oc, cpIndex: 0, laps: 0, angle: 0, speed: 0 };
+}
+function clearRace() {
+  for (const cp of _raceCheckpoints) scene.remove(cp.mesh);
+  _raceCheckpoints = [];
+  if (_opponent) { scene.remove(_opponent.mesh); _opponent = null; }
+}
+function updateRaceCheckpointVisuals() {
+  _raceCheckpoints.forEach((cp, i) => {
+    cp.mesh.material.color.setHex(i === _raceCPIndex ? 0xf0d080 : 0x445566);
+  });
+}
+function updateRaceHUD() {
+  const el = document.getElementById('race-info');
+  if (!el || !_raceCheckpoints.length) return;
+  el.textContent = `LAP ${Math.min(_raceLaps + 1, RACE_LAPS_TOTAL)}/${RACE_LAPS_TOTAL}  ·  CHECKPOINT ${_raceCPIndex + 1}/${_raceCheckpoints.length}`;
+}
+function finishRace(playerWon) {
+  _raceFinished = true;
+  gameRunning = false;
+  const goTitle = document.querySelector('#goPanel .go-title');
+  goTitle.textContent = playerWon ? 'YOU WIN!' : 'YOU LOSE';
+  goTitle.style.color = playerWon ? '#40e070' : '#e04030';
+  document.getElementById('goScore').textContent =
+    playerWon ? 'You crossed the finish line first!' : 'The rival finished first.';
+  showMenuUI(false);
+}
+function updateRace(dt) {
+  if (_raceFinished || !_raceCheckpoints.length) return;
+  const pc = window._playerCar;
+  const target = _raceCheckpoints[_raceCPIndex];
+  if (Math.hypot(pc.position.x - target.x, pc.position.z - target.z) < 9) {
+    _raceCPIndex = (_raceCPIndex + 1) % _raceCheckpoints.length;
+    if (_raceCPIndex === 0) {
+      _raceLaps++;
+      if (_raceLaps >= RACE_LAPS_TOTAL) { finishRace(true); return; }
+    }
+    updateRaceCheckpointVisuals();
+  }
+  const op = _opponent;
+  if (op) {
+    const ot = _raceCheckpoints[op.cpIndex];
+    const dx = ot.x - op.mesh.position.x, dz = ot.z - op.mesh.position.z;
+    const targetAngle = Math.atan2(dx, dz);
+    let da = targetAngle - op.angle;
+    da = Math.atan2(Math.sin(da), Math.cos(da));
+    op.angle += Math.max(-0.045, Math.min(0.045, da)) * dt;
+    op.speed += (0.42 - op.speed) * 0.04 * dt;
+    op.mesh.position.x += Math.sin(op.angle) * op.speed * dt;
+    op.mesh.position.z += Math.cos(op.angle) * op.speed * dt;
+    op.mesh.position.y = sampleGround(op.mesh.position.x, op.mesh.position.z, op.mesh.position.y);
+    op.mesh.rotation.y = op.angle + Math.PI;
+    if (Math.hypot(dx, dz) < 9) {
+      op.cpIndex = (op.cpIndex + 1) % _raceCheckpoints.length;
+      if (op.cpIndex === 0) {
+        op.laps++;
+        if (op.laps >= RACE_LAPS_TOTAL) { finishRace(false); return; }
+      }
+    }
+  }
+  updateRaceHUD();
+}
+
+// ── Mode dispatch ────────────────────────────────────────────────
+function setupGameMode() {
+  clearPedestrians();
+  clearPolice();
+  clearRace();
+  _wantedStars = []; _busted = 0;
+  document.getElementById('wanted-hud').style.display = gameMode === 'cop'  ? 'flex' : 'none';
+  document.getElementById('race-hud').style.display   = gameMode === 'race' ? 'flex' : 'none';
+  const goTitle = document.querySelector('#goPanel .go-title');
+  goTitle.textContent = 'GAME OVER'; goTitle.style.color = '#e04030';
+  document.getElementById('goScore').textContent = '';
+  if (gameMode === 'cop') {
+    spawnPedestrians(16);
+  } else if (gameMode === 'race') {
+    setupRace();
+    updateRaceHUD();
+  }
+}
+function updateGameMode(dt) {
+  if (gameMode === 'cop') {
+    updateWantedStars(dt);
+    updatePedestrians(dt);
+    updatePolice(dt);
+    updateStarsHUD();
+  } else if (gameMode === 'race') {
+    updateRace(dt);
+  }
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -1540,45 +1916,25 @@ function animate(ts) {
   // Throttle only has power when the engine is running, the car isn't flipped,
   // and the ignition sample has finished playing (audio + gameplay stay in sync);
   // otherwise it just coasts to a stop (same friction as the no-input case).
-  const ignitionDone = !audioCtx || audioCtx.currentTime >= _engineHoldUntil;
+  const ignitionDone = performance.now() >= _throttleReadyAt;
   if (engineOn && !flipped && ignitionDone) {
-    if (up)        carSpeed = Math.min(carSpeed + 0.003 * dt,  0.7);
-    else if (down) carSpeed = Math.max(carSpeed - 0.003 * dt, -0.15);
+    if (up)        carSpeed = Math.min(carSpeed + 0.0013 * dt,  0.7);
+    else if (down) carSpeed = Math.max(carSpeed - 0.0013 * dt, -0.15);
     else           carSpeed *= Math.pow(0.97, dt);
   } else {
     carSpeed *= Math.pow(0.97, dt);
   }
 
   const spd = Math.abs(carSpeed);
-  // Steering works while rolling OR while the player feeds throttle/reverse,
-  // so you can always reorient — even when nudged up against a wall.
+  // Steering only bites once the car is actually rolling — this is what stops
+  // it from spinning in place (tank-pivot) when stalled against a wall with
+  // the throttle held. Authority ramps up fast (full bite by spd 0.12, ~1.5s
+  // of acceleration) so it still feels responsive right as the car pulls away.
   let angVel = 0;
-  if (spd > 0.004 || up || down) {
-    const authority = Math.max(Math.min(spd / 0.22, 1.0), (up || down) ? 0.4 : 0);
-    angVel = 0.020 * authority * (carSpeed >= 0 ? 1 : -1) * ((left ? 1 : 0) - (right ? 1 : 0));
+  if (spd > 0.02) {
+    const authority = Math.min(spd / 0.12, 1.0);
+    angVel = 0.016 * authority * (carSpeed >= 0 ? 1 : -1) * ((left ? 1 : 0) - (right ? 1 : 0));
     carAngle += angVel * dt;
-  }
-
-  // ── DRIFT & ROLLOVER — no scripted trigger. Cornering hard at speed builds
-  // real lateral G; past the tyres' grip limit the car starts sliding sideways
-  // (drift), and if that slide is held long enough the accumulated tip
-  // momentum flips the car onto its side, exactly like a real rollover. ──
-  const rgx = -Math.cos(carAngle), rgz = Math.sin(carAngle);      // car's right vector
-  const lateralG = spd * Math.abs(angVel);
-  const GRIP_LIMIT = 0.0065;
-  if (lateralG > GRIP_LIMIT && spd > 0.10) {
-    driftVel += Math.sign(angVel) * (lateralG - GRIP_LIMIT) * 55 * dt;
-  }
-  driftVel *= Math.pow(0.90, dt);                                 // tyres clawing traction back
-  if (!flipped && spd > 0.32 && Math.abs(driftVel) > 0.10) {
-    _tipMomentum += (Math.abs(driftVel) - 0.10) * dt;
-  } else {
-    _tipMomentum *= Math.pow(0.85, dt);
-  }
-  const TIP_THRESHOLD = 5.5;
-  if (_tipMomentum > TIP_THRESHOLD) {
-    beginDriftRollover(Math.sign(driftVel) || 1, Math.min(1, _tipMomentum / (TIP_THRESHOLD * 2)));
-    _tipMomentum = 0; driftVel = 0;
   }
 
   // ── Movement with wall-SLIDING collision (never wedges) ──────────
@@ -1588,8 +1944,8 @@ function animate(ts) {
   // so the car slides along it; a true head-on hit dents the car and bounces
   // it back a touch, so it can never glue itself to anything.
   const fwdx = -Math.sin(carAngle), fwdz = -Math.cos(carAngle);
-  const dx = fwdx * carSpeed * dt + rgx * driftVel * dt;
-  const dz = fwdz * carSpeed * dt + rgz * driftVel * dt;
+  const dx = fwdx * carSpeed * dt;
+  const dz = fwdz * carSpeed * dt;
   const lead = (carSpeed >= 0 ? 1 : -1) * 4.5;     // leading-edge offset
 
   const wallAt = (x, z) => {
@@ -1730,7 +2086,7 @@ function animate(ts) {
   pc.rotation.x = _pitch + _landImpact + _sP;
   pc.rotation.z = _roll + steerLean + _sR;
 
-  // ── Enemy traffic ─────────────────────────────────────────────
+  updateGameMode(dt);
   score += Math.floor(Math.abs(carSpeed) * 4.5);
   updateHUD(); drawMinimap(); renderFrame();
 }
